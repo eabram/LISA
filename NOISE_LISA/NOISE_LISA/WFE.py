@@ -479,12 +479,10 @@ class WFE():
 
 
 
-    def test(self):
-        print('This is a test function')
 
 #Obtining TTL by pointing
 
-    def zern_aim(self,i_self,t,side='l'):
+    def zern_aim(self,i_self,t,side='l',ret='surface',ksi=[0,0]):
         # This function calculates the tilt and piston when receiving the beam in a telescope.
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
 
@@ -493,73 +491,30 @@ class WFE():
             tdel = self.Ndata.data.L_rl_func_tot(i_self,t)
             beam_send = self.aim.beam_r_vec(i_next,t-tdel)
             beam_send_coor = self.aim.beam_r_coor(i_next,t-tdel)
-            tele_rec_coor = self.aim.tele_l_coor(i_self,t)
+            tele_rec = self.aim.tele_l_vec(i_self,t)
 
         if side=='r':
             i_next = i_right
             tdel = self.Ndata.data.L_rr_func_tot(i_self,t)
             beam_send = self.aim.beam_l_vec(i_next,t-tdel)
             beam_send_coor = self.aim.beam_l_coor(i_next,t-tdel)
-            tele_rec_coor = self.aim.tele_r_coor(i_self,t)
-
-        tele_rec = L_tele*tele_rec_coor[0]
-        beam_tele = LA.matmul(tele_rec_coor,beam_send)
-        #beam_tele[0] = -beam_tele[0] 
-        #tele_beam = LA.matmul(beam_send_coor,tele_rec)
-
-        # Calculating offset w.r.t. center of telescope aperture
-        tele_proj = LA.unit(beam_send)*np.dot(tele_rec,LA.unit(beam_send))
-        piston_vec = beam_send + tele_proj
-        [q,yoff,xoff] = tele_rec-tele_proj
-        zoff = np.linalg.norm(piston_vec)
+            tele_rec = self.aim.tele_r_vec(i_self,t)
         
+        tele_beam = LA.matmul(beam_send_coor,tele_rec)
+        beam_beam = LA.matmul(beam_send_coor,beam_send)
+        [zoff,yoff,xoff] = beam_beam - tele_beam
+
+
+       
         # Calculating tilt
-        angx = np.arctan(-beam_tele[2]/abs(beam_tele[0]))
-        angy = np.arctan(-beam_tele[1]/abs(beam_tele[0]))
+        angx = np.arctan(abs(tele_beam[2]/tele_beam[0]))*np.sign(np.dot(tele_beam,beam_send_coor[2]))
+        angy = np.arctan(abs(tele_beam[1]/tele_beam[0]))*np.sign(np.dot(tele_beam,beam_send_coor[1]))
         
 
-        #if self.jitter_tele_done!=False: #..adjust for new method
-        #    if side =='l':
-        #        pr = 0
-        #        ps = 1
-        #    elif side == 'r':
-        #        pr = 1
-        #        ps = 0
+        xoff = xoff+ksi[0]*np.cos(angx)
+        yoff = yoff+ksi[1]*np.cos(angy)
+        zoff = zoff+ksi[0]*np.sin(angx)+ksi[1]*np.sin(angy)
 
-        #    dr_send = self.jitter_tele_done[ps][i_next-1][2](t-tdel)
-        #    din_send = self.jitter_tele_done[ps][i_next-1][0](t-tdel)
-        #    dout_send = self.jitter_tele_done[ps][i_next-1][1](t-tdel)
-        #    dr_rec = self.jitter_tele_done[pr][i_self-1][2](t)
-        #    din_rec = self.jitter_tele_done[pr][i_self-1][0](t)
-        #    dout_rec = self.jitter_tele_done[pr][i_self-1][1](t)
-        #    
-
-        #    r_self = self.Ndata.data.r_func(i_self,t)
-        #    n_self = n
-        #    x_self = LA.unit(np.cross(n_self,r_self))
-
-        #    dr_rec = LA.unit(r_self)*dr_rec
-        #    dout_rec = LA.unit(n_self)*dout_rec
-        #    din_rec = x_self*din_rec
-        #    #print(dr_rec,dout_rec,din_rec)
-
-        #    djitter_rec = dr_rec+dout_rec+din_rec
-        #    #print(djitter_rec)
-        #    djitter_rec = LA.tele_coor(djitter_rec,beam_send,n_next)
-        #    djitter = djitter_rec - np.array([din_send,dout_send,dr_send])
-
-        #    #print(djitter)
-
-        #else:
-        #    dr_send = 0
-        #    din_send = 0
-        #    dout_send = 0
-        #    dr_rec = 0
-        #    din_rec = 0
-        #    dout_rec = 0
-        #    
-        #    djitter=np.array([0,0,0])
-                
         piston = self.z_solve(xoff,yoff,zoff)
         R = self.R(piston)
 
@@ -567,22 +522,33 @@ class WFE():
         angxoff = np.arcsin(xoff/R)
         angyoff = np.arcsin(yoff/R)
 
+        
         # Zernike polynomials
-        angx_tot = angx+angxoff
+        print(angx,angy,angxoff,angyoff)
+        angx_tot = angx+angxoff #..check if add or subtract
         angy_tot = angy+angyoff
-        thmn11 = np.arctan(angy_tot/angx_tot)
-        zmn11 = (angx_tot**2 + angy_tot**2)**0.5
-        zmn00 = piston
+        print(angx_tot,angy_tot)
+        
+        if ret=='piston':
+            return piston
+        elif ret=='angx':
+            return angx_tot
+        elif ret=='angy':
+            return angy_tot
+        elif ret=='surface':
+            thmn11 = np.arctan(angy_tot/angx_tot)
+            zmn11 = (angx_tot**2 + angy_tot**2)**0.5
+            zmn00 = piston
 
-        zmn={}
-        thmn={}
-        zmn['00'] = zmn00
-        zmn['11'] = zmn11
-        thmn['11'] = thmn11
-        self.zmn = zmn
-        self.thmn = thmn
+            zmn={}
+            thmn={}
+            zmn['00'] = zmn00
+            zmn['11'] = zmn11
+            thmn['11'] = thmn11
+            self.zmn = zmn
+            self.thmn = thmn
+            return [xoff,yoff,zoff],zmn,thmn
 
-        return [xoff,yoff,zoff],zmn,thmn
 
     
 # Calulate P

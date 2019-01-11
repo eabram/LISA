@@ -30,7 +30,7 @@ input_param = {
         'num_back': 0,
         'dir_orbits': '/home/ester/git/synthlisa/orbits/', # Folder with orbit files
         'length_calc': 40, # Length of number of imported datapoints of orbit files. 'all' is also possible
-        'dir_extr': 'zzzWaluschka_no_abberation', # This will be added to the folder name of the figures
+        'dir_extr': 'Waluschka_no_abberation', # This will be added to the folder name of the figures
         'timeunit':'Default', # The timeunit of the plots (['minutes'],['days']['years'])
         'LISA_opt':True, # If a LISA object from syntheticLISA will be used for further calculations (not sure if it works properly if this False)
         'arm_influence': True, # Set True to consider the travel time of the photons when calculating the nominal armlengths
