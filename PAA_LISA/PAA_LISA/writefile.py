@@ -1,6 +1,6 @@
 from imports import *
 
-def do_writefile(self,data_use=False,folder='output_files',filename='',orbit_name='',variable_dict={},mark=';   '):
+def do_writefile(self,data_use=False,folder='output_files',filename='',orbit_name='',variable_dict={},mark='\t'):
     if data_use==True:
         
         folder = self.dir_savefig
@@ -20,6 +20,8 @@ def do_writefile(self,data_use=False,folder='output_files',filename='',orbit_nam
 
     for key in variable_dict.keys():
         title = filename+key+'.txt'
+        title = title.replace('-','_')
+        title = title.replace(' ','_')
         title = title.replace('/',' by ')
         title = folder+'/'+title
         writefile = open(title,'w')
