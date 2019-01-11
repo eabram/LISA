@@ -5,6 +5,11 @@ import NOISE_LISA
 global LA
 LA = PAA_LISA.la()
 
+#def reload():
+#    #reload(NOISE_LISA)
+#    #reload(PAA_LISA)
+#    print('Reloaded packages')
+
 # Changes of coordinate system
 def coor_SC(wfe,i,t):
     # r,n,x (inplane) format

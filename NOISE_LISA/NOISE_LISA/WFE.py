@@ -479,7 +479,8 @@ class WFE():
 
 
 
-
+    def test(self):
+        print('This is a test function')
 
 #Obtining TTL by pointing
 
@@ -503,7 +504,7 @@ class WFE():
 
         tele_rec = L_tele*tele_rec_coor[0]
         beam_tele = LA.matmul(tele_rec_coor,beam_send)
-        %beam_tele[0] = -beam_tele[0] 
+        #beam_tele[0] = -beam_tele[0] 
         #tele_beam = LA.matmul(beam_send_coor,tele_rec)
 
         # Calculating offset w.r.t. center of telescope aperture
@@ -513,8 +514,8 @@ class WFE():
         zoff = np.linalg.norm(piston_vec)
         
         # Calculating tilt
-        angx = np.arctan(-beam_tele[2]/\abs(beam_tele[0]))
-        angy = np.arctan(-beam_tele[1]/\abs{beam_tele[0]))
+        angx = np.arctan(-beam_tele[2]/abs(beam_tele[0]))
+        angy = np.arctan(-beam_tele[1]/abs(beam_tele[0]))
         
 
         #if self.jitter_tele_done!=False: #..adjust for new method
