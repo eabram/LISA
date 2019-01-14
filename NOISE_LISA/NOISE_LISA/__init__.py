@@ -3,6 +3,7 @@ import PAA_LISA
 import functions
 import calc_values
 import plotfile
+import parameters
 
 from .WFE import WFE
 from .plotfile import plot_func

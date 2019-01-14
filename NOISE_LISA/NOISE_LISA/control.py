@@ -15,6 +15,7 @@ class AIM():
         self.offset_control = kwargs.pop('offset_control',True)
         global LA
         LA = PAA_LISA.la()
+        import imports
 
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
@@ -64,7 +65,15 @@ class AIM():
         v_SC = LA.matmul(coor,v)
         
         #print(v_SC)
-        ang = np.arcsin(v_SC[2]/np.linalg.norm(v_SC[0])) # Angle betweed x and r component, whih is the optimal telescope pointing angle (inplane)
+        import warnings
+        warnings.simplefilter("error", RuntimeWarning)
+        try:
+            ang = np.arcsin(v_SC[2]/np.linalg.norm(v_SC[0])) # Angle betweed x and r component, whih is the optimal telescope pointing angle (inplane)
+        except RuntimeWarning:
+            print(v_SC[2],v_SC[0])
+            print(i,t,v)
+            ang = np.nan
+            pass
 
         return ang
 
@@ -81,6 +90,8 @@ class AIM():
 
         if method == False:
             method = self.tele_method
+        else:
+            self.tele_method = method
 
         print('The telescope control method is: '+method)
         print(' ')
@@ -148,10 +159,13 @@ class AIM():
 
         return ret
 
-    def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=3600*12,mode='overdamped'):
+    def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=1,mode='overdamped'):
         if method==False:
             method = self.PAAM_method
-        print('The PAAM control method is: ' +method)
+        else:
+            self.tele_method = method
+
+       print('The PAAM control method is: ' +method)
         print(' ')
 
         ang_fc_l = lambda i,t: self.wfe.Ndata.data.PAA_func['l_out'](i,t)
@@ -172,8 +186,8 @@ class AIM():
                 ang_l = lambda i,t: 0
                 ang_r = lambda i,t: 0
         elif method=='SS':
-            ang_l_SS = lambda i,t: self.SS_control(ang_fc_l,i,t,dt) # Adjusting the pointing every dt seconds
-            ang_r_SS = lambda i,t: self.SS_control(ang_fc_r,i,t,dt)
+            ang_l_SS = lambda i,t: ang_fc_l(i,t-(t%dt)) # Adjusting the pointing every dt seconds
+            ang_r_SS = lambda i,t: ang_fc_r(i,t-(t%dt))
             print('Taken '+method+' step response for PAAM SS control with tau='+str(tau)+'sec')
             ang_l = self.step_response(ang_l_SS,dt,tau=tau,mode=mode)
             ang_r = self.step_response(ang_r_SS,dt,tau=tau,mode=mode)
