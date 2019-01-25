@@ -1,15 +1,20 @@
 from imports import *
 from functions import *
-from parameters import *
+import parameters 
 import PAA_LISA
 import NOISE_LISA
 
-class WFE():
+class WFE(): 
     def __init__(self,**kwargs):
-        global labda, w0, E0, k, D, LA,L_tele
-        
-        
-        self.Ndata = kwargs.pop('Ndata',False)
+        #global labda, w0, E0, k, D, LA,L_tele
+        para = NOISE_LISA.parameters.__dict__
+        for k in para:
+            globals()[k] = para[k]
+            setattr(self,k,para[k])
+        global w0
+        w0 = w0_laser
+        #self.Ndata = kwargs.pop('Ndata',False)
+        self.data = kwargs.pop('data',False)
         self.tele_control = kwargs.pop('tele_control','no control')
         self.PAAM_control_method = kwargs.pop('PAAM_control','SS')
         self.side = kwargs.pop('side','l')
@@ -23,26 +28,34 @@ class WFE():
         self.thmn_func = {}
         self.zmn={}
         self.thmn = {}
-        if self.Ndata==False:
-            print('Please input NOISE_LISA object')
+        #para = parameters.do_para()
+        #for keys in para.keys():
+        #    globals()[keys] = para[keys]
+        #    setattr(self,keys,para[keys])
+        self.t_all = self.data.t_all
+
+        if self.data==False:
+            print('Please input PAA_LISA object')
         else:
-            labda = self.Ndata.data.labda
-            w0 = self.Ndata.data.w0
-            E0 = 1 #...adjust
-            k = (2*np.pi)/labda
-            D = self.Ndata.data.D
+
+        #    labda = self.Ndata.data.labda
+        #    w0 = self.Ndata.data.w0
+        #    E0 = 1 #...adjust
+        #    k = (2*np.pi)/labda
+        #    D = self.Ndata.data.D
             LA = PAA_LISA.utils.la()
             self.pupil()
             self.scale=1
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=True): #...add more variables
+
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=True,iteration=0): #...add more variables
         if tele_method==False:
             tele_method = self.tele_control
         if PAAM_method==False:
             PAAM_method = self.PAAM_control_method
 
         aim = NOISE_LISA.AIM(self,offset_control=offset_control)
-        aim.tele_aim(method=tele_method)
+        aim.tele_aim(method=tele_method,iteration=iteration)
         aim.PAAM_control(method=PAAM_method)
         self.tele_control = aim.tele_method
         self.PAAM_control_method = aim.PAAM_method
@@ -116,7 +129,7 @@ class WFE():
             angy = self.aim.PAAM_r_ang(i,t)
         angx = 0 #...to do: Add jitter
        
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         function = lambda x,y: 2*np.pi*((x*np.sin(angx)+y*np.sin(angy))/labda)
 
         w = self.aperture(xlist,ylist,function,dType = np.float64)
@@ -132,7 +145,7 @@ class WFE():
 
         [x,y] = ksi
         
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         w_error = 2*np.pi*((x*np.sin(angx)+y*np.sin(angy))/labda)
 
         return w_error
@@ -150,7 +163,7 @@ class WFE():
             xlist = self.xlist
         if ylist==False:
             ylist = self.ylist
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         k = (2*np.pi)/labda
         
         dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
@@ -179,8 +192,8 @@ class WFE():
 
         u = self.u_rz_calc(r,z,i,t,side,xlist=xlist,ylist=ylist)
         w = self.w(z) #...check if proper z is used (z0)
-        wac = (self.Ndata.data.D/2)/w
-        norm = ((np.pi*((2*np.pi)/self.Ndata.data.labda)*w**2*(1-np.exp(-1/(wac**2))))/(2*np.pi*z))**2
+        wac = (self.data.D/2)/w
+        norm = ((np.pi*((2*np.pi)/self.data.labda)*w**2*(1-np.exp(-1/(wac**2))))/(2*np.pi*z))**2
         I = (abs(u)**2)/norm
         phase = np.angle(u)
 
@@ -315,7 +328,6 @@ class WFE():
 
         return ret
 
-    def zern(self,m,n,zmn=False,thmn=False,offset=[0,0],mode='ttl'):
         if zmn==False:
             zmn = self.zmn
             thmn = self.thmn
@@ -347,8 +359,8 @@ class WFE():
                     if mode =='ttl':
                         ps[i,j] = self.Cmn_calc(m,n,rho,phi,zmn,thmn)
                     elif mode == 'phase':
-                        a = self.Cmn_calc(m,n,rho,phi,zmn,thmn)%self.Ndata.data.labda
-                        ps[i,j] = 2*np.pi*(a/self.Ndata.data.labda)
+                        a = self.Cmn_calc(m,n,rho,phi,zmn,thmn)%self.data.labda
+                        ps[i,j] = 2*np.pi*(a/self.data.labda)
                 else:
                     ps[i,j] = np.nan
         return ps
@@ -359,10 +371,10 @@ class WFE():
         #...Check for angle conventions (directions)
         if side=='l':
             ksix = 0#self.tele_SS_l(i,t) # ...replace with misalignment
-            ksiy = self.Ndata.data.PAA_func['l_out'](i,t)
+            ksiy = self.data.PAA_func['l_out'](i,t)
         elif side =='r':
             ksix = 0#self.tele_SS_r(i,t) # replace with misallignment
-            ksiy = self.Ndata.data.PAA_func['r_out'](i,t)
+            ksiy = self.data.PAA_func['r_out'](i,t)
 
         if ksix==0:
             thmn = np.pi*0.5
@@ -416,8 +428,8 @@ class WFE():
         self.TTL_tele_send_l = lambda i,t: self.phasefront_send(i,t,side='l')
         self.TTL_tele_send_r = lambda i,t: self.phasefront_send(i,t,side='r')
         
-        self.tele_point_SS_l = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_l(i,t),self.Ndata.data.n_func(i,t),self.tele_SS_l(i,t)))
-        self.tele_point_SS_r = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_r(i,t),self.Ndata.data.n_func(i,t),self.tele_SS_r(i,t)))
+        self.tele_point_SS_l = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_l(i,t),self.data.n_func(i,t),self.tele_SS_l(i,t)))
+        self.tele_point_SS_r = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_r(i,t),self.data.n_func(i,t),self.tele_SS_r(i,t)))
 
         return 0
 
@@ -513,7 +525,7 @@ class WFE():
         
 
     def mean_angin(self,i,side,dt=False):
-        t_vec = self.Ndata.data.t_all
+        t_vec = self.data.t_all
 
         if dt==False:
             dt = t_vec[1]-t_vec[0]
@@ -545,7 +557,7 @@ class WFE():
 
             if side=='l':
                 i_next = i_left
-                tdel = self.Ndata.data.L_rl_func_tot(i_self,t)
+                tdel = self.data.L_rl_func_tot(i_self,t)
                 beam_send = self.aim.beam_r_vec(i_next,t-tdel)
                 beam_send_coor = self.aim.beam_r_coor(i_next,t-tdel)
                 tele_rec = self.aim.tele_l_vec(i_self,t)
@@ -553,7 +565,7 @@ class WFE():
 
             if side=='r':
                 i_next = i_right
-                tdel = self.Ndata.data.L_rr_func_tot(i_self,t)
+                tdel = self.data.L_rr_func_tot(i_self,t)
                 beam_send = self.aim.beam_l_vec(i_next,t-tdel)
                 beam_send_coor = self.aim.beam_l_coor(i_next,t-tdel)
                 tele_rec = self.aim.tele_r_vec(i_self,t)
@@ -660,9 +672,9 @@ class WFE():
 # Calulate P
     def P_calc(self,i,t,side='l'): # Only simple calculation (middel pixel)
         if side=='l':
-            P = np.cos(self.zern_aim(i,t,side='l')[1]['11'])*self.Ndata.data.P_L
+            P = np.cos(self.zern_aim(i,t,side='l')[1]['11'])*self.data.P_L
         elif side=='r':
-            P = np.cos(self.zern_aim(i,t,side='r')[1]['11'])*self.Ndata.data.P_L
+            P = np.cos(self.zern_aim(i,t,side='r')[1]['11'])*self.data.P_L
         
         return P
 
@@ -704,9 +716,9 @@ class WFE():
             z = zmn['00']
         z = z + x0*np.sin(angx)+y0*np.sin(angy)
 
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         w = self.w(z)
-        r0 = self.Ndata.data.D*0.5
+        r0 = self.data.D*0.5
         k = (2*np.pi)/labda #...adjust for laser noise
         wac = r0/w
         q = -1.0/(wac**2) # ...In Sasso paper not with minus sign!!!

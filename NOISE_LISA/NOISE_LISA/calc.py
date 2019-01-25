@@ -2,7 +2,8 @@ from imports import *
 from functions import *
 from parameters import *
 import PAA_LISA
-class Noise():
+class Noise(): 
+    
     def __init__(self,**kwargs):
         self.data = kwargs.pop('data',False)
         self.t_all = self.data.t_all 

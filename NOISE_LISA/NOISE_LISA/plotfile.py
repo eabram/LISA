@@ -34,9 +34,9 @@ class plot_func():
         if wfe==False:
             wfe=self.wfe
         if t0==False:
-            t0 = wfe.Ndata.t_all[1]
+            t0 = wfe.t_all[1]
         if tend==False:
-            tend = wfe.Ndata.t_all[-2]
+            tend = wfe.t_all[-2]
         N = int(np.round((tend-t0)/dt))+1
         self.t_plot = np.linspace(t0,tend,N)
    
@@ -75,6 +75,7 @@ class plot_func():
             n=''
 
         f.savefig(directory+title+n+'.png')
+        print(title+n+'.png'+' saved in '+directory)
 
         return 0
 
@@ -190,7 +191,7 @@ class plot_func():
             wfe = self.wfe
         title=' of '+title 
         ttl = wfe.ttl_val
-        t_vec = wfe.Ndata.t_all
+        t_vec = wfe.t_all
 
         if dt!=False:
             self.make_t_plot(dt=dt)

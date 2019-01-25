@@ -14,8 +14,8 @@ LA = PAA_LISA.la()
 def coor_SC(wfe,i,t):
     # r,n,x (inplane) format
 
-    r = LA.unit(wfe.Ndata.data.r_func(i,t))
-    n = LA.unit(wfe.Ndata.data.n_func(i,t))
+    r = LA.unit(wfe.data.r_func(i,t))
+    n = LA.unit(wfe.data.n_func(i,t))
     x = np.cross(n,r)
 
     return np.array([r,n,x])
