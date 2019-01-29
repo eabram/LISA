@@ -8,7 +8,7 @@ import NOISE_LISA
 class AIM():
     def __init__(self,wfe,**kwargs):
         print('Start calculating telescope and PAAM aim')
-        self.wfe = wfe
+        
         self.PAAM_method = wfe.PAAM_control_method
         self.tele_method = wfe.tele_control
         self.offset_control = kwargs.pop('offset_control',True)
@@ -16,6 +16,8 @@ class AIM():
         global LA
         LA = PAA_LISA.la()
         import imports
+        
+        self.wfe = wfe
 
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
@@ -279,7 +281,7 @@ class AIM():
         if method==False:
             method = self.PAAM_method
         else:
-            self.tele_method = method
+            self.PAAM_method = method
 
         print('The PAAM control method is: ' +method)
         print(' ')
@@ -311,6 +313,7 @@ class AIM():
             f_noise_r = lambda i,t: (ang_r(i,t)-ang_r_SS(i,t))**2
             self.PAAM_ang_l_SS = ang_l_SS
             self.PAAM_ang_r_SS = ang_r_SS
+            self.PAAM_step = dt
         else:
             raise ValueError('Please select a valid PAAM pointing method')
 

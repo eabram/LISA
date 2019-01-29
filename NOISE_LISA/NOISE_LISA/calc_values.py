@@ -37,7 +37,7 @@ def ttl(wfe,tele_control=False,PAAM_control_method=False,simple=True):
     
     return ttl
 
-def ang(wfe): 
+def ang(wfe,iteration=[0,1]): 
     tele_l={}
     PAAM_l={}
 
@@ -47,19 +47,26 @@ def ang(wfe):
     PAAM_methods=['no control','full control','SS']
     tele_methods = PAAM_methods
 
-    for tele_method in tele_methods:
-        tele_l[tele_method]={}
-        PAAM_l[tele_method]={}
-        tele_r[tele_method]={}
-        PAAM_r[tele_method]={}
-        
-        for PAAM_method in PAAM_methods:
-            key=tele_method+', '+PAAM_method
-            wfe.get_pointing(PAAM_method=PAAM_method,tele_method=tele_method)
-            tele_l[tele_method][PAAM_method] = wfe.aim.tele_l_ang
-            PAAM_l[tele_method][PAAM_method] = wfe.aim.PAAM_l_ang
-            tele_r[tele_method][PAAM_method] = wfe.aim.tele_r_ang
-            PAAM_r[tele_method][PAAM_method] = wfe.aim.PAAM_r_ang
+    for i in iteration:
+        ikey=str(i)
+        tele_l[ikey]={}
+        PAAM_l[ikey]={}
+        tele_r[ikey]={}
+        PAAM_r[ikey]={}
+
+        for tele_method in tele_methods:
+            tele_l[ikey][tele_method]={}
+            PAAM_l[ikey][tele_method]={}
+            tele_r[ikey][tele_method]={}
+            PAAM_r[ikey][tele_method]={}
+            
+            for PAAM_method in PAAM_methods:
+                key=tele_method+', '+PAAM_method
+                wfe.get_pointing(PAAM_method=PAAM_method,tele_method=tele_method,iteration=i)
+                tele_l[ikey][tele_method][PAAM_method] = wfe.aim.tele_l_ang
+                PAAM_l[ikey][tele_method][PAAM_method] = wfe.aim.PAAM_l_ang
+                tele_r[ikey][tele_method][PAAM_method] = wfe.aim.tele_r_ang
+                PAAM_r[ikey][tele_method][PAAM_method] = wfe.aim.PAAM_r_ang
     
     return tele_l,PAAM_l,tele_r,PAAM_r
             

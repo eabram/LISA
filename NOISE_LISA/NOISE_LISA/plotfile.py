@@ -80,7 +80,7 @@ class plot_func():
         return 0
 
 
-    def plot_piston(self,wfe=False,dt=False):
+    def plot_piston(self,wfe=False,dt=False,title_extr='',SC=3):
         if dt != False:
             self.make_t_plot(dt=dt)
 
@@ -93,7 +93,7 @@ class plot_func():
         piston_mean_r={}
         piston_var_r={}
         
-        for i in range(1,4):
+        for i in range(1,SC+1):
             piston_mean_l[str(i)]=[]
             piston_var_l[str(i)]=[]
             piston_mean_r[str(i)]=[]
@@ -115,9 +115,10 @@ class plot_func():
 
         for i in piston_mean_l.keys():
             ax[0,int(i)-1].plot(self.t_plot/day2sec,piston_mean_l[i],label='SC'+i+', left')
-            ax[1,int(i)-1].plot(self.t_plot/day2sec,piston_var_l[i],label='SC'+i+', left')
-            ax[2,int(i)-1].plot(self.t_plot/day2sec,piston_mean_r[i],label='SC'+i+', right')
-            ax[3,int(i)-1].plot(self.t_plot/day2sec,piston_var_r[i],label='SC'+i+', right')
+            if SC!=1:
+                ax[1,int(i)-1].plot(self.t_plot/day2sec,piston_var_l[i],label='SC'+i+', left')
+                ax[2,int(i)-1].plot(self.t_plot/day2sec,piston_mean_r[i],label='SC'+i+', right')
+                ax[3,int(i)-1].plot(self.t_plot/day2sec,piston_var_r[i],label='SC'+i+', right')
 
         i_label=['Mean armlength','Mean variance armlength','Mean armlength','Mean variance armlength']
         for i in range(0,len(ax)):
@@ -130,8 +131,10 @@ class plot_func():
                 ax[i,j].legend(loc='best')
                 ax[i,j].set_title(i_label[i])
 
-        direct = self.directory+'Piston.png'
+        direct = self.directory+'Piston'+title_extr+'.png'
         self.do_savefig(f,'Piston')
+
+        return f,ax
 
     def plot_ang(self,i,side,wfe=False,dt=False):
 
@@ -139,13 +142,7 @@ class plot_func():
             wfe=self.wfe
         tele_l,PAAM_l,tele_r,PAAM_r = NOISE_LISA.calc_values.ang(wfe)
 
-        f,ax = plt.subplots(2,3,figsize=(15,15))
-        plt.subplots_adjust(hspace=0.6,wspace=0.2)
-        count=0
-
-
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
-        f.suptitle('Transmitting telescope and receiving PAAM pointing, SC'+str(i_self)+', side'+side)
         if side=='l':
             tele = tele_l
             PAAM = PAAM_r
@@ -156,31 +153,36 @@ class plot_func():
             PAAM = PAAM_l
             i_next = i_right
 
-        for key_tele in tele.keys():
-            for key_PAAM in tele[key_tele].keys():
-                tele_calc=[]
-                PAAM_calc=[]
-                for t in self.t_plot:
-                    tele_calc.append(tele[key_tele][key_PAAM](i_self,t))
-                    PAAM_calc.append(PAAM[key_tele][key_PAAM](i_next,t))
-                #tele_calc=np.arrray(tele_calc)
-                #PAAM_calc=np.arrray(PAAM_calc)
+        for ikey in tele.keys():
+            f,ax = plt.subplots(2,3,figsize=(15,15))
+            plt.subplots_adjust(hspace=0.6,wspace=0.2)
+            f.suptitle('Transmitting telescope and receiving PAAM pointing, SC'+str(i_self)+', side'+side+', iter='+ikey)
+            count=0
+            for key_tele in tele[ikey].keys():
+                for key_PAAM in tele[ikey][key_tele].keys():
+                    tele_calc=[]
+                    PAAM_calc=[]
+                    for t in self.t_plot:
+                        tele_calc.append(tele[ikey][key_tele][key_PAAM](i_self,t))
+                        PAAM_calc.append(PAAM[ikey][key_tele][key_PAAM](i_next,t))
+                    #tele_calc=np.arrray(tele_calc)
+                    #PAAM_calc=np.arrray(PAAM_calc)
 
-                ax[0][count].plot(self.t_plot/day2sec,tele_calc,label='PAAM: '+key_PAAM)
-                ax[1][count].plot(self.t_plot/day2sec,PAAM_calc,label='PAAM: '+key_PAAM)
-            ax[0][count].set_title('Telescope angle for telescope control='+key_tele)
-            ax[1][count].set_title('PAAM angle for telescope control='+key_tele)
+                    ax[0][count].plot(self.t_plot/day2sec,tele_calc,label='PAAM: '+key_PAAM)
+                    ax[1][count].plot(self.t_plot/day2sec,PAAM_calc,label='PAAM: '+key_PAAM)
+                ax[0][count].set_title('Telescope angle for telescope control='+key_tele)
+                ax[1][count].set_title('PAAM angle for telescope control='+key_tele)
 
-            ax[0][count].legend(loc='best')
-            ax[1][count].legend(loc='best')
+                ax[0][count].legend(loc='best')
+                ax[1][count].legend(loc='best')
 
-            ax[0][count].set_xlabel('Time (days)')
-            ax[1][count].set_xlabel('Time (days)')
-            ax[0][count].set_ylabel('Angle (rad)')
-            ax[1][count].set_ylabel('Angle (micro rad)')
-            count = count+1
+                ax[0][count].set_xlabel('Time (days)')
+                ax[1][count].set_xlabel('Time (days)')
+                ax[0][count].set_ylabel('Angle (rad)')
+                ax[1][count].set_ylabel('Angle (micro rad)')
+                count = count+1
 
-        self.do_savefig(f,'Pointing_SC'+str(i)+'.png')
+            self.do_savefig(f,'Pointing_SC'+str(i)+'_iter'+ikey+'.png')
 
         return 0
 
