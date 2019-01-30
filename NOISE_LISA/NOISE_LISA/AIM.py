@@ -10,6 +10,8 @@ class AIM():
         print('Start calculating telescope and PAAM aim')
         
         self.PAAM_method = wfe.PAAM_control_method
+        if self.PAAM_method =='SS_lim':
+            self.FOV_control = kwargs.pop('FOV_control',1e-6)
         self.tele_method = wfe.tele_control
         self.offset_control = kwargs.pop('offset_control',True)
         self.compensation_tele = kwargs.pop('compensation_tele',True)
@@ -18,6 +20,9 @@ class AIM():
         import imports
         
         self.wfe = wfe
+        self.noise = NOISE_LISA.Noise(wfe=wfe)
+        self.PAAM_method = wfe.PAAM_control_method
+        self.tele_method = wfe.tele_control
 
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
@@ -149,8 +154,8 @@ class AIM():
             tele_l_SS = lambda i,t: self.tele_ang_l_fc(i,t-(t%dt))
             tele_r_SS = lambda i,t: self.tele_ang_r_fc(i,t-(t%dt))
             print('Taken '+mode+' step response for telescope SS control with tau='+str(tau)+'sec')
-            tele_l = self.step_response(tele_l_SS,dt,tau=tau,mode=mode)
-            tele_r = self.step_response(tele_r_SS,dt,tau=tau,mode=mode)
+            tele_l = self.step_response(tele_l_SS,'tele',dt,tau=tau,mode=mode)
+            tele_r = self.step_response(tele_r_SS,'tele',dt,tau=tau,mode=mode)
             self.tele_l_ang_SS = tele_l_SS
             self.tele_r_ang_SS = tele_r_SS
 
@@ -260,20 +265,80 @@ class AIM():
         
 
 
-    def add_jitter(self,ang_func,i,t,dang,scale_v,dt=0.1):
+    def add_jitter(self,ang_func,i,scale_v,dt=3600,PSD=False,f0=1e-6,f_max=1e-3,N=4096,offset=1,scale_tot=1):
+        t_stop = self.wfe.t_all[-2]
+        if PSD==False:
+            PSD = lambda f: 16*1e-9
+        func_noise = self.noise.Noise_time(f0,f_max,N,PSD,t_stop)[1]
+        
+        
+        offset = offset*scale_tot
+        scale_v = scale_v*scale_tot
+        
         # add position jitter
         # add velocity jitter
-        v = (ang_func(i,t) - ang_func(i,t-dt))/dt
+        v = lambda t: (ang_func(t) - ang_func(t-dt))/dt
+        ret = lambda t: func_noise(t)*(offset+v(t)*scale_v)+ang_func(t)
+        #return np.random.normal(ang_func(i,t),dang*(1+v*scale_v))#...adjust: make correlated errors
+        return ret
 
-        return np.random.normal(ang_func(i,t),dang*(1+v*scale_v))#...adjust: make correlated errors
+    
+    def SS_FOV_control(self,i,f_PAA,xlim=False,accuracy=3600,FOV=1e-6,step=False,step_response=False):
+        wfe=self.wfe
+        if xlim==False:
+            xlim=[wfe.t_all[1],wfe.t_all[-2]]
+        if step==False:
+            step=0.5*FOV
+        self.FOV_control = FOV
+        
+        x0=xlim[0]
+        function=lambda t: f_PAA(i,t)
 
-
-    def SS_control(self,function,i,t,dt):
-        t0 = t-(t%dt)
-        if t0==0 or t0==self.wfe.data.t_all[-1]:
-            ret = np.nan
+        steps = [(function(x0)-function(x0)%step)]
+        PAAM = [steps[-1]]
+        t_PAAM = [x0]
+        x_list=[x0]
+        while x0<=xlim[1]:
+            fb = f_PAA(i,x0)
+            if fb-steps[-1]>step:
+                steps.append(steps[-1])
+                steps.append(step+steps[-1])
+                x_list.append(x0-10)
+                x_list.append(x0)
+                t_PAAM.append(x0)
+                PAAM.append(steps[-1])
+            elif fb-steps[-1]<-step:
+                steps.append(steps[-1])
+                steps.append(-step+steps[-1])
+                x_list.append(x0-10)
+                x_list.append(x0)
+                t_PAAM.append(x0)
+                PAAM.append(steps[-1])
+ 
+            x0=x0+accuracy
+        steps.append(steps[-1])
+        x_list.append(x0)
+        
+        try:
+            PAAM_func = interpolate(np.array(x_list),np.array(steps))
+        except ValueError:
+            PAAM_func = lambda t: 0
         else:
-            ret = function(i,t-(t%dt))
+            ret=[t_PAAM,PAAM,PAAM_func]
+
+        return ret
+
+
+    def SS_control(self,function,i,t,dt=False,xlim=False,accuracy=3600,FOV=1e-6,step=False):
+        if dt == False:
+            ret = self.SS_FOV_control(i,function,xlim=xlim,accuracy=accuracy,FOV=FOV,step=step)
+        
+        else:
+            t0 = t-(t%dt)
+            if t0==0 or t0==self.wfe.data.t_all[-1]:
+                ret = np.nan
+            else:
+                ret = function(i,t-(t%dt))
 
         return ret
 
@@ -288,6 +353,8 @@ class AIM():
 
         ang_fc_l = lambda i,t: self.wfe.data.PAA_func['l_out'](i,t)
         ang_fc_r = lambda i,t: self.wfe.data.PAA_func['r_out'](i,t)
+        self.PAAM_fc_ang_l = ang_fc_l
+        self.PAAM_fc_ang_r = ang_fc_r
 
         # Obtaining PAAM angles for 'fc' (full control), 'nc' (no control) and 'SS' (step and stair)
         
@@ -306,28 +373,43 @@ class AIM():
         elif method=='SS':
             ang_l_SS = lambda i,t: ang_fc_l(i,t-(t%dt)) # Adjusting the pointing every dt seconds
             ang_r_SS = lambda i,t: ang_fc_r(i,t-(t%dt))
-            print('Taken '+method+' step response for PAAM SS control with tau='+str(tau)+'sec')
-            ang_l = self.step_response(ang_l_SS,dt,tau=tau,mode=mode)
-            ang_r = self.step_response(ang_r_SS,dt,tau=tau,mode=mode)
+            print('Taken '+method+' step response for PAAM SS control with tau='+str(tau)+' sec')
+            mode='overdamped'
+
+        elif method=='SS_lim':
+            ang_l_SS = lambda i: self.SS_control(ang_fc_l,i,False,dt=False,xlim=False,accuracy=3600,FOV=self.FOV_control,step=False)
+            ang_r_SS = lambda i: self.SS_control(ang_fc_r,i,False,dt=False,xlim=False,accuracy=3600,FOV=self.FOV_control,step=False)
+            print('Taken '+method+' step response for PAAM SS control with tau='+str(tau)+' sec and step limit='+str(self.FOV_control*1e6)+' radians')
+            mode='not_damped' #...damped SS not implemented jet for SS_lim
+        else:
+            raise ValueError('Please select a valid PAAM pointing method')
+
+
+        if 'SS' in method:
+            ang_l = self.step_response(ang_l_SS,'PAAM',dt,tau=tau,mode=mode)
+            ang_r = self.step_response(ang_r_SS,'PAAM',dt,tau=tau,mode=mode)
             f_noise_l = lambda i,t: (ang_l(i,t)-ang_l_SS(i,t))**2
             f_noise_r = lambda i,t: (ang_r(i,t)-ang_r_SS(i,t))**2
             self.PAAM_ang_l_SS = ang_l_SS
             self.PAAM_ang_r_SS = ang_r_SS
             self.PAAM_step = dt
-        else:
-            raise ValueError('Please select a valid PAAM pointing method')
+
 
         # Adding jitter
         if jitter!=False:
-            self.PAAM_l_ang = lambda i,t: self.add_jitter(ang_l,i,t,1e-8,1e20,dt=3600)
-            self.PAAM_r_ang = lambda i,t: self.add_jitter(ang_r,i,t,1e-8,1e20,dt=3600)
+            self.beam_l_ang = lambda i,t: self.add_jitter(ang_l,i,t,1e-8,1e20,dt=3600)
+            self.beam_r_ang = lambda i,t: self.add_jitter(ang_r,i,t,1e-8,1e20,dt=3600)
         else:
-            self.PAAM_l_ang = ang_l
-            self.PAAM_r_ang = ang_r
+            self.beam_l_ang = ang_l
+            self.beam_r_ang = ang_r
+
+        #self.PAAM_l_ang = lambda i,t: self.beam_l_ang(i,t)*wfe.MAGNIFICATION
+        #self.PAAM_r_ang = lambda i,t: self.beam_r_ang(i,t)*wfe.MAGNIFICATION
+
 
         # Calculating new pointing vectors and coordinate system
-        self.beam_l_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.PAAM_l_ang(i,t))
-        self.beam_r_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.PAAM_r_ang(i,t))
+        self.beam_l_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
+        self.beam_r_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
 
         self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_rl_func_tot(i,t)*c
         self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_rr_func_tot(i,t)*c
@@ -337,17 +419,51 @@ class AIM():
     
     def step_response_calc(self,function,i,t,dt,tau,mode='overdamped'):
         if mode=='overdamped':
+            #if self.PAAM_method=='SS':
             t0 = t-(t%dt)
             t1 = t0+dt
             Y0 = function(i,t0)
             Y1 = function(i,t1)
-            if t0==0:
-                Y0=Y1
-            return Y1+(Y0-Y1)*np.exp(-(t-t0)/tau)
+            #elif self.PAAM_method=='SS_lim':
+            #    [t_PAAM,PAAM] = function(i)
+            #    k = NOISE_LISA.get_nearest_smaller_value(t_PAAM,t)
+            #    t0 = t_PAAM[k]
+            #    t1 = t_PAAM[k+1]
+            #    Y0 = PAAM[k]
+            #    Y1 = PAAM[k+1]
+            if t<self.wfe.t_all[2] or t>self.wfe.t_all[-2]:
+                return np.nan
+            else:
+                if t0==0:
+                    Y0=Y1
+                return Y1+(Y0-Y1)*np.exp(-(t-t0)/tau)
         elif mode==False:
             return function(i,t)
 
-    def step_response(self,function,dt,tau=3600,mode='overdamped'):
-        return lambda i,t: self.step_response_calc(function,i,t,dt,tau=tau,mode=mode)
+    def step_response(self,function,select,dt,tau=3600,mode='overdamped'):
+        if select=='PAAM' and self.PAAM_method=='SS_lim':
+            f = []
+            for i in range(1,4):
+                [t_PAAM,PAAM,func] = function(i)
+                if mode=='overdamped':
+                    ret=[]
+                    for j in range(1,len(t_PAAM)):
+                        t0 = t_PAAM[j-1]
+                        t1 = t_PAAM[j]
+                        Y0 = PAAM[j-1]
+                        Y1 = PAAM[j]
+
+                        ret.append(lambda t: Y1+(Y0-Y1)*np.exp(-(t-t0)/tau))
+
+                    pos = lambda t: NOISE_LISA.functions.get_nearest_smaller_value(t_PAAM,t)
+                    f.append(lambda t: ret[pos(t)])
+                else:
+                    f.append(func)
+
+            return PAA_LISA.utils.func_over_sc(f)
+        else:
+            return lambda i,t: self.step_response_calc(function,i,t,dt,tau=tau,mode=mode)
+ 
+
 
 

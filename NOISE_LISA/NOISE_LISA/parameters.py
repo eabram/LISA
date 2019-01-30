@@ -10,7 +10,7 @@ eta_opt = 0.23 # ...look up
 eta_pd = 0.68 # A/W
 P_L = 1 # W ...verufy with new LISA technical speifications
 D = 0.20 # Diameter [m]
-MAGNIFICATION = 5
+MAGNIFICATION = 80 # Check value in Technote
 
 nu_0 = c/labda
 
@@ -24,7 +24,7 @@ D = 0.240 # blz. 12 Optical quality criterion of a truncated laser beam for extr
 gamma_0 = 1.12 # blz. 12 
 L_tele = 1 # meter telecope length
 E0 = 1 #...Adjust
-
+FOV = np.float64(8e-6) #Field of View telescope
 #Calculations
 w0_laser = D/(2*gamma_0) # blz. 12
 k = (2*np.pi)/labda
@@ -63,7 +63,7 @@ k = (2*np.pi)/labda
 #    para['L_tele'] = 1 # meter telecope length
 #    para['E0'] = 1 #...Adjust
 #
-#    # Calculations
+#    # Calculation
 #    para['w0'] = para['D']/(2*para['gamma_0']) # blz. 12
 #    para['k'] = (2*np.pi)/para['labda']
 #

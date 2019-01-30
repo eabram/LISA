@@ -64,9 +64,9 @@ def ang(wfe,iteration=[0,1]):
                 key=tele_method+', '+PAAM_method
                 wfe.get_pointing(PAAM_method=PAAM_method,tele_method=tele_method,iteration=i)
                 tele_l[ikey][tele_method][PAAM_method] = wfe.aim.tele_l_ang
-                PAAM_l[ikey][tele_method][PAAM_method] = wfe.aim.PAAM_l_ang
+                PAAM_l[ikey][tele_method][PAAM_method] = wfe.aim.beam_l_ang
                 tele_r[ikey][tele_method][PAAM_method] = wfe.aim.tele_r_ang
-                PAAM_r[ikey][tele_method][PAAM_method] = wfe.aim.PAAM_r_ang
+                PAAM_r[ikey][tele_method][PAAM_method] = wfe.aim.beam_r_ang
     
     return tele_l,PAAM_l,tele_r,PAAM_r
             

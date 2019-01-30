@@ -5,7 +5,8 @@ import PAA_LISA
 class Noise(): 
     
     def __init__(self,**kwargs):
-        self.data = kwargs.pop('data',False)
+        self.wfe = kwargs.pop('wfe',False)
+        self.data = self.wfe.data
         self.t_all = self.data.t_all 
 
         if self.data==False:

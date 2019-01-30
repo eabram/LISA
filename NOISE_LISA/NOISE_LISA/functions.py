@@ -3,6 +3,25 @@ import PAA_LISA
 import NOISE_LISA
 
 global LA
+
+def get_nearest_smaller_value(lst,val):
+    lst.sort()
+    if val<lst[0]:
+         pos = np.nan #...check if this holds
+    else:
+        for i in range(1,len(lst)):
+            if val<lst[i] and val>=lst[i-1]:
+                pos = i-1
+                break
+
+    return pos
+     
+        
+        
+        
+    
+
+
 LA = PAA_LISA.la()
 
 #def reload():

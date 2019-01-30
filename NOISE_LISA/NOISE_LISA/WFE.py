@@ -91,10 +91,10 @@ class WFE():
         #R_new = lambda dz: self.R(z+dz,guess=False)
         f_solve = lambda dz: (self.R(z+dz,guess=R_guess) - (self.R(z+dz,guess=R_guess)**2 - (x**2+y**2))**0.5) - dz
         f_solve_2 = lambda dz: (z- (((z+dz)**2 - x**2 -y**2 )**0.5))
-        dz_sol = scipy.optimize.brentq(f_solve,-0.5*z,z*0.5,xtol=1e-64)
-        dz_sol_3 = scipy.optimize.brentq(f_solve_2,-0.5*z,z*0.5,xtol=1e-64)
+        dz_sol = scipy.optimize.brentq(f_solve,-10,10,xtol=1e-64)
+        dz_sol_3 = scipy.optimize.brentq(f_solve_2,-10,10,xtol=1e-64)
         dz_sol_2 = scipy.optimize.fsolve(f_solve,0,xtol=1e-128)
-
+        
         if calc_R==True:
             return self.R(z+dz_sol_2,guess=R_guess)
         else:
@@ -119,9 +119,9 @@ class WFE():
                 ylist =self.ylist
 
         if side=='l':
-            angy = self.aim.PAAM_l_ang(i,t)
+            angy = self.aim.beam_l_ang(i,t)
         elif side=='r':
-            angy = self.aim.PAAM_r_ang(i,t)
+            angy = self.aim.beam_r_ang(i,t)
         angx = 0 #...to do: Add jitter
        
         labda = self.data.labda
@@ -133,9 +133,9 @@ class WFE():
 
     def w0(self,i,t,side,ksi):
         if side=='l':
-            angy = self.aim.PAAM_l_ang(i,t)
+            angy = self.aim.beam_l_ang(i,t)
         elif side == 'r':
-            angy = self.aim.PAAM_r_ang(i,t)
+            angy = self.aim.beam_r_ang(i,t)
         angx=0#...add jitter
 
         [x,y] = ksi
@@ -247,6 +247,7 @@ class WFE():
         if dt==False:
             dt = t_vec[1]-t_vec[0]
         t_vec = np.linspace(t_vec[0],t_vec[-1],int(((t_vec[-1]-t_vec[0])/dt)+1))
+        print(t_vec)
         ang=[]
         for t in t_vec:
             if side=='l':
