@@ -458,7 +458,8 @@ class AIM():
                     pos = lambda t: NOISE_LISA.functions.get_nearest_smaller_value(t_PAAM,t)
                     f.append(lambda t: ret[pos(t)])
                 else:
-                    f.append(func)
+                    func_ret = lambda t: NOISE_LISA.functions.make_nan(func,t,[t_PAAM[0],t_PAAM[-1]])
+                    f.append(func_ret)
 
             return PAA_LISA.utils.func_over_sc(f)
         else:

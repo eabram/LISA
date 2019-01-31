@@ -61,7 +61,7 @@ class WFE():
 
     # Beam properties equations
 
-    def pupil(self,D_calc = D,Nbins=10):
+    def pupil(self,D_calc = D,Nbins=2):
         self.xlist = np.linspace(-D_calc*0.5,D_calc*0.5,Nbins)
         self.ylist = self.xlist
         self.Deltax = self.xlist[1]-self.xlist[0]
@@ -75,36 +75,54 @@ class WFE():
         return w0*((1+((z/zR)**2))**0.5)
 
     def R(self,z,guess=False):
-        zR = np.pi*(w0**2)/labda
+        if z!=np.nan:
+            zR = np.pi*(w0**2)/labda
 
-        if guess==False:
-            return abs(z*(1+((zR/z)**2)))
+            if guess==False:
+                return abs(z*(1+((zR/z)**2)))
 
-        elif guess==True:
-            return z
+            elif guess==True:
+                return z
+        else:
+            return np.nan
 
     def z_solve(self,x,y,z,calc_R=False,ret='piston',R_guess=True):
-        x = np.float64(x)
-        y = np.float64(y)
-        z = np.float64(z)
-        
-        #R_new = lambda dz: self.R(z+dz,guess=False)
-        f_solve = lambda dz: (self.R(z+dz,guess=R_guess) - (self.R(z+dz,guess=R_guess)**2 - (x**2+y**2))**0.5) - dz
-        f_solve_2 = lambda dz: (z- (((z+dz)**2 - x**2 -y**2 )**0.5))
-        dz_sol = scipy.optimize.brentq(f_solve,-10,10,xtol=1e-64)
-        dz_sol_3 = scipy.optimize.brentq(f_solve_2,-10,10,xtol=1e-64)
-        dz_sol_2 = scipy.optimize.fsolve(f_solve,0,xtol=1e-128)
-        
-        if calc_R==True:
-            return self.R(z+dz_sol_2,guess=R_guess)
-        else:
+        try:
+            if z!=np.nan:
+                x = np.float64(x)
+                y = np.float64(y)
+                z = np.float64(z)
+                
+                #R_new = lambda dz: self.R(z+dz,guess=False)
+                f_solve = lambda dz: (self.R(z+dz,guess=R_guess) - (self.R(z+dz,guess=R_guess)**2 - (x**2+y**2))**0.5) - dz
+                f_solve_2 = lambda dz: (z- (((z+dz)**2 - x**2 -y**2 )**0.5))
+                dz_sol = scipy.optimize.brentq(f_solve,-0.5*z,0.5*z,xtol=1e-64)
+                dz_sol_3 = scipy.optimize.brentq(f_solve_2,-10,10,xtol=1e-64)
+                dz_sol_2 = scipy.optimize.fsolve(f_solve,0,xtol=1e-128)
+            else:
+                dz_sol=np.nan
+                dz_sol_2=np.nan
+                dz_sol_3=np.nan
+                raise ValueError
+            
+            if calc_R==True:
+                return self.R(z+dz_sol,guess=R_guess)
+            else:
+                if ret=='piston':
+                    return z+dz_sol
+                elif ret=='all':
+                    #print(dz_sol,1e-64)
+                    #print(x,y)
+                    #print(dz_sol,dz_sol_2,dz_sol_3)
+                    #print(x,y,z)
+                    return [z+dz_sol,dz_sol]
+            
+        except RuntimeError:
+            print(x,y,z)
             if ret=='piston':
-                return z+dz_sol_2
+                return np.nan
             elif ret=='all':
-                #print(x,y)
-                #print(dz_sol,dz_sol_2,dz_sol_3)
-                #print(x,y,z)
-                return [z+dz_sol,dz_sol]
+                return [np.nan,np.nan]
 
 
 # WFE send
@@ -195,20 +213,21 @@ class WFE():
         return u,I,phase
 
     def u_rz_aperture(self,zmn,thmn,i,t,side='l',xlist=False,ylist=False,mode='power'):
-        if self.speed_on>=1: #Only canculates center (works correctly for only piston and tilt
-            xlist = np.array([0])
-            ylist = np.array([0])
-         
-        if mode=='power':
-            function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[1]
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
-        elif mode=='u':
-            function = lambda x,y: abs(self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[0])
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
-        elif mode=='phase':
-            function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[2]
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
+        if zmn==np.nan or thmn==np.nan:
+            function = lambda x,y: np.nan
+        else:
+            if self.speed_on>=1: #Only canculates center (works correctly for only piston and tilt
+                xlist = np.array([0])
+                ylist = np.array([0])
+             
+            if mode=='power':
+                function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[1]
+            elif mode=='u':
+                function = lambda x,y: abs(self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[0])
+            elif mode=='phase':
+                function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[2]
 
+        ps = self.aperture(xlist,ylist,function,dType=np.float64)
         
         
         return ps
@@ -247,7 +266,7 @@ class WFE():
         if dt==False:
             dt = t_vec[1]-t_vec[0]
         t_vec = np.linspace(t_vec[0],t_vec[-1],int(((t_vec[-1]-t_vec[0])/dt)+1))
-        print(t_vec)
+        #print(t_vec)
         ang=[]
         for t in t_vec:
             if side=='l':
@@ -320,7 +339,11 @@ class WFE():
         #piston_0 = self.z_solve(ksi[0],ksi[1],z0,ret='piston')
         #piston_tilt = self.z_solve(xoff_tilt,yoff_tilt,zoff_tilt+,ret='piston')
         #piston_1 = self.z_solve(xoff,yoff,zoff,ret='piston')
-        [piston,z_extra] = self.z_solve(xoff,yoff,zoff,ret='all')
+        try:
+            [piston,z_extra] = self.z_solve(xoff,yoff,zoff,ret='all')
+        except:
+            [piston,z_extra] = [np.nan,np.nan]
+            print(xoff,yoff,zoff)
          
         #z_extra = z0 - piston
         R = self.R(piston)
@@ -378,16 +401,28 @@ class WFE():
             power_angle = [angx_tot,angy_tot]
             return [xoff,yoff,zoff],zmn,thmn
 
-    def calc_piston_val(self,i,t,side):
-        piston = lambda x,y: self.zern_aim(i,t,side=side,ret='piston',ksi=[x,y])
-        piston_ttl = self.aperture(False,False,piston,dType=np.float64)
-        
-        N = np.sum(np.isnan(piston_ttl))
-        return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
+    def calc_piston_val(self,i,t,side,ret='piston'):
+        piston = lambda x,y: self.zern_aim(i,t,side=side,ret=ret,ksi=[x,y])
+        if self.speed_on==2:
+            xlist=[0]
+            ylist=[0]
+        else:
+            xlist=False
+            ylist=False
+        piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
+        N_flat = PAA_LISA.utils.flatten(piston_ttl)
+        N = len(N_flat) - np.sum(np.isnan(N_flat))
+        try:
+            return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
+        except RuntimeWarning:
+            #print(piston_ttl)
+            return np.nan,np.nan
 
     def piston_val(self):
-        self.piston_val_l = lambda i,t: self.calc_piston_val(i,t,'l')
-        self.piston_val_r = lambda i,t: self.calc_piston_val(i,t,'r')
+        self.piston_val_l = lambda i,t: self.calc_piston_val(i,t,'l',ret='piston')
+        self.piston_val_r = lambda i,t: self.calc_piston_val(i,t,'r',ret='piston')
+        self.ztilt_val_l = lambda i,t: self.calc_piston_val(i,t,'l',ret='z_extra')
+        self.ztilt_val_r = lambda i,t: self.calc_piston_val(i,t,'r',ret='z_extra')
 
         return 0 
 

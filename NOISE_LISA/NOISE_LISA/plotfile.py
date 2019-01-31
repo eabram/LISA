@@ -77,7 +77,7 @@ class plot_func():
         f.savefig(directory+title+n+'.png')
         print(title+n+'.png'+' saved in '+directory)
 
-        return 0
+        return f 
 
 
     def plot_piston(self,wfe=False,dt=False,title_extr='',SC=3):
@@ -92,24 +92,40 @@ class plot_func():
         piston_var_l={}
         piston_mean_r={}
         piston_var_r={}
+        ztilt_mean_l={}
+        ztilt_mean_r={}
+        ztilt_var_l={}
+        ztilt_var_r={}
         
         for i in range(1,SC+1):
             piston_mean_l[str(i)]=[]
             piston_var_l[str(i)]=[]
             piston_mean_r[str(i)]=[]
             piston_var_r[str(i)]=[]
+            ztilt_mean_l[str(i)]=[]
+            ztilt_mean_r[str(i)]=[]
+            ztilt_var_l[str(i)]=[]
+            ztilt_var_r[str(i)]=[]
+
             for t in self.t_plot:
                 print(t/self.t_plot[-1])
                 calc = wfe.piston_val_l(i,t)
                 piston_mean_l[str(i)].append(calc[0])
                 piston_var_l[str(i)].append(calc[1])
+                calc = wfe.ztilt_val_l(i,t)
+                ztilt_mean_l[str(i)].append(calc[0])
+                ztilt_var_l[str(i)].append(calc[1])
 
                 calc = wfe.piston_val_r(i,t)
                 piston_mean_r[str(i)].append(calc[0])
                 piston_var_r[str(i)].append(calc[1])
+                calc = wfe.ztilt_val_r(i,t)
+                ztilt_mean_r[str(i)].append(calc[0])
+                ztilt_var_r[str(i)].append(calc[1])
 
-        
-        f,ax = plt.subplots(4,3,figsize=(20,20))
+
+        num_subplots = [8,3]
+        f,ax = plt.subplots(num_subplots[0],num_subplots[1],figsize=(2*5*num_subplots[1],5*num_subplots[0]))
         plt.subplots_adjust(hspace=0.6,wspace=0.2)
         f.suptitle('Telescope control: '+wfe.aim.tele_method+', PAAM control: '+ wfe.aim.PAAM_method)
 
@@ -119,8 +135,13 @@ class plot_func():
                 ax[1,int(i)-1].plot(self.t_plot/day2sec,piston_var_l[i],label='SC'+i+', left')
                 ax[2,int(i)-1].plot(self.t_plot/day2sec,piston_mean_r[i],label='SC'+i+', right')
                 ax[3,int(i)-1].plot(self.t_plot/day2sec,piston_var_r[i],label='SC'+i+', right')
+                ax[4,int(i)-1].plot(self.t_plot/day2sec,ztilt_mean_l[i],label='SC'+i+', left')
+                ax[5,int(i)-1].plot(self.t_plot/day2sec,ztilt_var_l[i],label='SC'+i+', left')
+                ax[6,int(i)-1].plot(self.t_plot/day2sec,ztilt_mean_r[i],label='SC'+i+', right')
+                ax[7,int(i)-1].plot(self.t_plot/day2sec,ztilt_var_r[i],label='SC'+i+', right')
 
-        i_label=['Mean armlength','Mean variance armlength','Mean armlength','Mean variance armlength']
+
+        i_label=['Mean armlength','Mean variance armlength','Mean armlength','Mean variance armlength','Mean armlength due to tilt','Mean variance armlength due to tilt','Mean armlength due to tilt','Mean variance armlength due to tilt']
         for i in range(0,len(ax)):
             for j in range(0,len(ax[i])):
                 ax[i,j].set_xlabel('Time (sec)')
@@ -130,6 +151,8 @@ class plot_func():
                     ax[i,j].set_ylabel('Distance^2 (m^2)')
                 ax[i,j].legend(loc='best')
                 ax[i,j].set_title(i_label[i])
+                ax[i,j].set_xlabel('Time (days)')
+                ax[i,j].set_ylabel('Length (m)')
 
         direct = self.directory+'Piston'+title_extr+'.png'
         self.do_savefig(f,'Piston')

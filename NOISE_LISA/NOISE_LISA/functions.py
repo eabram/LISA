@@ -15,11 +15,52 @@ def get_nearest_smaller_value(lst,val):
                 break
 
     return pos
-     
-        
-        
-        
+
+def make_nan(function,t,lim):
+    [a,b]=lim
+    if t<a or t>b:
+        return np.nan
+    else:
+        return function(t)
+
+def string_length(l,string):
+    while len(string)<l:
+        string = '0'+string
+
+    return string
+
+def get_date(option='date'):
+    now = datetime.datetime.now()
+    if option=='date':
+        ret=string_length(2,str(now.year))+string_length(2,str(now.month))+string_length(2,str(now.day))
+    elif option=='time':
+        ret=string_length(2,str(now.hour))+string_length(2,str(now.minute))+string_length(2,str(now.second))
+    #date=date+'-'+dir_extr
+    return ret
+
+def savefig(f,title='',direct=True,newdate=True,option='time',extension='png'):
     
+    if newdate==True:
+        date = get_date(option=option)
+    else:
+        try:
+            date
+        except NameError:
+            date='000000'
+            pass
+
+    if direct==True:
+        direct = os.getcwd()+'/Results/'+date+'/'
+    
+    if not os.path.exists(direct):
+        os.makedirs(direct)
+    
+    title=direct+'/'+title+'-'+date+extension
+    f.savefig(title)
+    print('Saved as '+title)
+
+    return 0
+
 
 
 LA = PAA_LISA.la()
