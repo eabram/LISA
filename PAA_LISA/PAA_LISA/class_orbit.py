@@ -130,7 +130,6 @@ class orbit():
         while i<len(a)-num_back:
             ret=ret+a[i]+'/'
             i=i+1
-        print(ret)
         return ret
 
     def calculations(self):

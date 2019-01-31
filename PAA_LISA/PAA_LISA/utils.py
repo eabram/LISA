@@ -373,9 +373,10 @@ def func_over_sc(func_tot):
 
     return f
 
-def send_func(OBJ,i,calc_method='Waluschka'):
-    print('Selected calculation method is: '+ calc_method)
-    print('')
+def send_func(OBJ,i,calc_method='Waluschka',print_on=False):
+    if print_on==True:
+        print('Selected calculation method is: '+ calc_method)
+        print('')
 
     [i_OBJ,i_left,i_right] = i_slr(i)
 

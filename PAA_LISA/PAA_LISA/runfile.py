@@ -23,7 +23,6 @@ def do_run(input_param,para):
     count=0
 
     for (dirpath, dirnames, filenames) in os.walk(dir_orbits):
-        print(filenames)
         for i in filenames:
             if i.split('.')[-1]=='txt':
                 a = dirpath+'/'+i
@@ -38,7 +37,6 @@ def do_run(input_param,para):
             new_folder=False # Adjust if you (don't) want to override
         else:
             new_folder=False
-        print('Dir_extr:'+dir_extr)
         if select == 'all':
             if '/try/' in i:
                 execute = False

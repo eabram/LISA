@@ -1,7 +1,7 @@
 from imports import *
 from functions import *
 import parameters 
-
+from .AIM import AIM
 #import PAA_LISA
 #import NOISE_LISA
 
@@ -18,8 +18,7 @@ class WFE():
         adjust={}
         adjust['select']= kwargs.pop('orbit','')
         adjust['length_calc']= kwargs.pop('duration',40)
-
-
+        adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
 
         if self.data==False:
             self.get_PAA_LISA(para,adjust=adjust)
@@ -80,7 +79,7 @@ class WFE():
 
         for k in range(0,len(data_all)/2):
             data = data_all[str(k+1)]
-
+        self.t_vec = data.t_all
         self.data = data
 
 
@@ -96,7 +95,7 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = NOISE_LISA.AIM(self,offset_control=offset_control)
+        aim = AIM(self,offset_control=offset_control)
 
         aim.tele_aim(method=tele_method,iteration=iteration)
         aim.PAAM_control(method=PAAM_method)

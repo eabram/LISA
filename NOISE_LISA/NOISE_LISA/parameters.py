@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 year2sec=32536000
 day2sec=year2sec/365.25
@@ -29,7 +30,7 @@ FOV = np.float64(8e-6) #Field of View telescope
 w0_laser = D/(2*gamma_0) # blz. 12
 k = (2*np.pi)/labda
 
-
+home_run = os.getcwd()
 
 
 #def do_para():

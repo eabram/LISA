@@ -13,6 +13,3 @@ para = parameters.__dict__
 for k in para:
     globals()[k] = para[k]
 print('Done')
-
-
-
