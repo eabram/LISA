@@ -1,8 +1,8 @@
 from imports import *
-from functions import *
+import functions
 from parameters import *
-import PAA_LISA
-import NOISE_LISA
+#import PAA_LISA
+import NOISE_LISA as pack
 
 # tele and PAA aim
 class AIM():
@@ -20,7 +20,7 @@ class AIM():
         import imports
         
         self.wfe = wfe
-        self.noise = NOISE_LISA.Noise(wfe=wfe)
+        self.noise = pack.Noise(wfe=wfe)
         self.PAAM_method = wfe.PAAM_control_method
         self.tele_method = wfe.tele_control
 
@@ -63,7 +63,7 @@ class AIM():
         return 0
 
     def tele_control_ang_fc_calc(self,i,t,side='l'):
-        coor = NOISE_LISA.coor_SC(self.wfe,i,t)
+        coor = functions.coor_SC(self.wfe,i,t)
         if side=='l':
             v = -self.wfe.data.u_l_func_tot(i,t)
         elif side=='r':
@@ -172,17 +172,17 @@ class AIM():
         
         
         # Calculating new pointing vectors and coordinate system
-        self.tele_l_coor = lambda i,t: NOISE_LISA.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
-        self.tele_r_coor = lambda i,t: NOISE_LISA.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))
-        self.tele_l_vec = lambda i,t: LA.unit(NOISE_LISA.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))[0])*L_tele
-        self.tele_r_vec = lambda i,t: LA.unit(NOISE_LISA.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))[0])*L_tele
+        self.tele_l_coor = lambda i,t: pack.fuctions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
+        self.tele_r_coor = lambda i,t: pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))
+        self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))[0])*L_tele
+        self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))[0])*L_tele
 
         return 0
 
 
     def tele_aim_vec(self,ang):
-        tele_l_vec = lambda i,t: LA.unit(NOISE_LISA.coor_tele(self.wfe,i,t,ang[0](i,t))[0])*L_tele
-        tele_r_vec = lambda i,t: LA.unit(NOISE_LISA.coor_tele(self.wfe,i,t,ang[1](i,t))[0])*L_tele
+        tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,ang[0](i,t))[0])*L_tele
+        tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,ang[1](i,t))[0])*L_tele
 
         return [tele_l_vec,tele_r_vec]
 
@@ -408,8 +408,8 @@ class AIM():
 
 
         # Calculating new pointing vectors and coordinate system
-        self.beam_l_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
-        self.beam_r_coor = lambda i,t: NOISE_LISA.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
+        self.beam_l_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
+        self.beam_r_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
 
         self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_rl_func_tot(i,t)*c
         self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_rr_func_tot(i,t)*c
@@ -455,10 +455,10 @@ class AIM():
 
                         ret.append(lambda t: Y1+(Y0-Y1)*np.exp(-(t-t0)/tau))
 
-                    pos = lambda t: NOISE_LISA.functions.get_nearest_smaller_value(t_PAAM,t)
+                    pos = lambda t: pack.functions.get_nearest_smaller_value(t_PAAM,t)
                     f.append(lambda t: ret[pos(t)])
                 else:
-                    func_ret = lambda t: NOISE_LISA.functions.make_nan(func,t,[t_PAAM[0],t_PAAM[-1]])
+                    func_ret = lambda t: pack.functions.make_nan(func,t,[t_PAAM[0],t_PAAM[-1]])
                     f.append(func_ret)
 
             return PAA_LISA.utils.func_over_sc(f)

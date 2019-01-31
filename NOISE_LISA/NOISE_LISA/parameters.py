@@ -8,7 +8,7 @@ c=300000000
 labda =1065*(10**-9) # m
 eta_opt = 0.23 # ...look up
 eta_pd = 0.68 # A/W
-P_L = 1 # W ...verufy with new LISA technical speifications
+P_L = 1 # W ...verify with new LISA technical speifications
 D = 0.20 # Diameter [m]
 MAGNIFICATION = 80 # Check value in Technote
 

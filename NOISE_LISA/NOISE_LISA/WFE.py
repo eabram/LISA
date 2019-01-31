@@ -1,8 +1,9 @@
 from imports import *
 from functions import *
 import parameters 
-import PAA_LISA
-import NOISE_LISA
+
+#import PAA_LISA
+#import NOISE_LISA
 
 class WFE(): 
     def __init__(self,**kwargs):
@@ -10,9 +11,20 @@ class WFE():
         for k in para:
             globals()[k] = para[k]
             setattr(self,k,para[k])
+
         global w0
         w0 = w0_laser
         self.data = kwargs.pop('data',False)
+        adjust={}
+        adjust['select']= kwargs.pop('orbit','')
+        adjust['length_calc']= kwargs.pop('duration',40)
+
+
+
+        if self.data==False:
+            self.get_PAA_LISA(para,adjust=adjust)
+
+
         self.tele_control = kwargs.pop('tele_control','no control')
         self.PAAM_control_method = kwargs.pop('PAAM_control','SS')
         self.side = kwargs.pop('side','l')
@@ -34,6 +46,42 @@ class WFE():
             LA = PAA_LISA.utils.la()
             self.pupil()
             self.scale=1
+
+    def get_PAA_LISA(self,para,adjust={}):
+        options = { 
+        'calc_method': 'Waluschka',
+        'plot_on':False, #If plots will be made
+        'dir_savefig': os.getcwd(), # The directory where the figures will be saved. If False, it will be in the current working directory
+        'noise_check':False,
+        'home':'/home/ester/git/synthlisa/', # Home directory
+        'directory_imp': False,
+        'num_back': 0,
+        'dir_orbits': '/home/ester/git/synthlisa/orbits/', # Folder with orbit files
+        'length_calc': 'all', # Length of number of imported datapoints of orbit files. 'all' is also possible
+        'dir_extr': 'zzzWaluschka_no_abberation', # This will be added to the folder name of the figures
+        'timeunit':'Default', # The timeunit of the plots (['minutes'],['days']['years'])
+        'LISA_opt':True, # If a LISA object from syntheticLISA will be used for further calculations (not sure if it works properly if this False)
+        'arm_influence': True, # Set True to consider the travel time of the photons when calculating the nominal armlengths
+        'tstep':False,
+        'delay':True, #'Not ahead' or False
+        'method':'fsolve', # Method used to solve the equation for the photon traveling time
+        'valorfunc':'Function', #
+        'select':'Hallion', # Select which orbit files will be imported ('all' is all)
+        'test_calc':False,
+        'abberation':False,
+        'delay': True
+        }
+
+        for k in adjust.keys():
+            if k in options.keys():
+                options[k] = adjust[k]
+
+        data_all = PAA_LISA.runfile.do_run(options,para)
+
+        for k in range(0,len(data_all)/2):
+            data = data_all[str(k+1)]
+
+        self.data = data
 
 
     def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=True,iteration=0): #...add more variables
@@ -61,8 +109,14 @@ class WFE():
 
     # Beam properties equations
 
-    def pupil(self,D_calc = D,Nbins=2):
-        self.xlist = np.linspace(-D_calc*0.5,D_calc*0.5,Nbins)
+    def pupil(self,Nbins=2,**kwargs):
+        D_calc=kwargs.pop('D',self.D)
+
+
+        if D_calc=='Default':
+            D = self.para['D'] 
+        xlist = np.linspace(-D_calc*0.5,D_calc*0.5,Nbins+1)
+        self.xlist = xlist[0:-1]+0.5*(xlist[1]-xlist[0])
         self.ylist = self.xlist
         self.Deltax = self.xlist[1]-self.xlist[0]
         self.Deltay = self.ylist[1]-self.ylist[0]
@@ -245,14 +299,14 @@ class WFE():
                 ylist = self.ylist
 
         Nbins = len(xlist)
-        D = max(xlist)
+        step = xlist[1]-xlist[0]
         ps = np.empty((Nbins,Nbins),dtype=dType)
         for i in range(0,len(xlist)):
             for j in range(0,len(ylist)):
                 x = xlist[i]
                 y = ylist[j]
-                r = (x**2+y**2)**0.5
-                if r<=D:
+                #r = (x**2+y**2)**0.5
+                if x**2+y**2<=0.25*(self.D**2):
                     ps[i,j] = function(x,y)
                 else:
                     ps[i,j] = np.nan
@@ -416,6 +470,7 @@ class WFE():
             return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
         except RuntimeWarning:
             #print(piston_ttl)
+            print(piston(0,0))
             return np.nan,np.nan
 
     def piston_val(self):

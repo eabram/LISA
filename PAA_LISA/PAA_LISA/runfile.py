@@ -55,7 +55,7 @@ def do_run(input_param,para):
 
         if execute == True:
             filename_save = i.split('/')[-1].split('_')[0]
-            data=PAA(home = home,filename = i,directory_imp=False,read_max = length_calc,plot_on=True,dir_extr=dir_extr,new_folder=new_folder,timeunit=timeunit,LISA=LISA_opt,arm_influence=arm_influence,tstep=tstep,delay=delay,method=method,valorfunc='Function',dir_savefig=dir_savefig,calc_method=calc_method,abberation=abberation).PAA_func() 
+            data=PAA(para,home = home,filename = i,directory_imp=False,read_max = length_calc,plot_on=True,dir_extr=dir_extr,new_folder=new_folder,timeunit=timeunit,LISA=LISA_opt,arm_influence=arm_influence,tstep=tstep,delay=delay,method=method,valorfunc='Function',dir_savefig=dir_savefig,calc_method=calc_method,abberation=abberation).PAA_func() 
             filename_done.append(filename_name)
             count=count+1
 

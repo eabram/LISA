@@ -38,16 +38,18 @@ def get_date(option='date'):
     #date=date+'-'+dir_extr
     return ret
 
-def savefig(f,title='',direct=True,newdate=True,option='time',extension='png'):
+def savefig(f,title='',direct=True,newtime=False,extension='png'):
     
-    if newdate==True:
-        date = get_date(option=option)
+    if newtime==True:
+        time = get_date(option='time')
     else:
         try:
-            date
+            time
         except NameError:
-            date='000000'
+            time='000000'
             pass
+    
+    date = get_date(option='date')
 
     if direct==True:
         direct = os.getcwd()+'/Results/'+date+'/'
@@ -55,7 +57,7 @@ def savefig(f,title='',direct=True,newdate=True,option='time',extension='png'):
     if not os.path.exists(direct):
         os.makedirs(direct)
     
-    title=direct+'/'+title+'-'+date+extension
+    title=direct+'/'+time+'-'+title+extension
     f.savefig(title)
     print('Saved as '+title)
 
@@ -64,11 +66,6 @@ def savefig(f,title='',direct=True,newdate=True,option='time',extension='png'):
 
 
 LA = PAA_LISA.la()
-
-#def reload():
-#    #reload(NOISE_LISA)
-#    #reload(PAA_LISA)
-#    print('Reloaded packages')
 
 # Changes of coordinate system
 def coor_SC(wfe,i,t):

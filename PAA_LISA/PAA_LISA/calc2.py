@@ -59,12 +59,10 @@ class PAA():
         self.calc_method = kwargs.pop('calc_method','Waluschka')
         print(self.calc_method)
         self.abb = kwargs.pop('abberation',False)
-        import parameters
-        parameters.do_obtain_var(parameters.do_para(),output=self)
     
     
     def PAA_func(self):
-        import functions as utils
+        import PAA_LISA.utils as utils
         print('')
         print('Importing Orbit')
         tic=time.clock()
