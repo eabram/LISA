@@ -5,7 +5,11 @@ day2sec=year2sec/365.25
 c=300000000
 
 class PAA():
-    def __init__(self,**kwargs):
+    def __init__(self,para,**kwargs):
+        for k in para:
+            globals()[k] = para[k]
+            setattr(self,k,para[k])
+
         self.home = kwargs.pop('home',os.getcwd())
         self.filename = kwargs.pop('filename','')
         self.directory_imp = kwargs.pop('directory_imp','')

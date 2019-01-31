@@ -3,7 +3,7 @@ import plotfile2
 import save_fig
 import writefile
 
-def do_run(input_param):
+def do_run(input_param,para):
     for keys in input_param.keys():
         if keys == 'dir_savefig':
             input_param[keys] = input_param[keys]+'/'
