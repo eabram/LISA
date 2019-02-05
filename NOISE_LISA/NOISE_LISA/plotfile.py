@@ -14,6 +14,16 @@ class plot_func():
         self.ttl_sample_all={}
         self.save_fig()
         self.override = kwargs.pop('override',True)
+        self.show = kwargs.pop('show',False)
+
+    def showfig(self,**kwargs):
+        fig = kwargs.pop('fig',False)
+
+        if self.show==True:
+            plt.show()
+        elif self.show==False:
+            plt.close(fig)
+
     def save_fig(self,wfe=False,directory=False,extra_folder=False):
         if directory==False:
             directory = 'Figures/TTL/'
@@ -156,6 +166,8 @@ class plot_func():
 
         direct = self.directory+'Piston'+title_extr+'.png'
         self.do_savefig(f,'Piston')
+        
+        self.showfig(fig=f)
 
         return f,ax
 
@@ -206,6 +218,8 @@ class plot_func():
                 count = count+1
 
             self.do_savefig(f,'Pointing_SC'+str(i)+'_iter'+ikey+'.png')
+            self.showfig(fig=f)
+
 
         return 0
 
@@ -260,6 +274,8 @@ class plot_func():
             self.ttl_sample_all[key_tele]={}
         self.ttl_sample_all[key_tele][key_PAAM] = ttl_sample
 
+        self.showfig(fig=f)
+        
         return [[t_plot,ttl_sample],[f,ax]]
 
     def plot_ttl_overview(self,ttl_sample_all=False):
@@ -288,6 +304,8 @@ class plot_func():
 
         f.savefig('Figures/TTL/Overview.png')
 
+        self.showfig(fig=f)
+
     def plot_P(self,i,side='l'):
         
         y = []
@@ -297,5 +315,5 @@ class plot_func():
         plt.title('Power for SC'+str(i)+', side='+side)
         plt.xlabel('Time (s)')
         plt.ylabel('Relative power')
-        plt.show()
+        self.showfig()
 

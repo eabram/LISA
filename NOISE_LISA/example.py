@@ -73,10 +73,3 @@ phase = wfe.u_rz_aperture(wfe.zmn,wfe.thmn,i,t,side=side,mode='phase')
 # TTL (incomplete)
 NOISE_LISA.calc_values.ttl(wfe,PAAM_control_method='full control')
 NOISE_LISA.plot_func(wfe).plot_ttl(1,side)
-
-
-
-
-
-
-

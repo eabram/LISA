@@ -16,6 +16,7 @@ import random
 
 # Import new packages
 import sys
+sys.path.insert(0,'/home/ester/git/LISA/NOISE_LISA')
 sys.path.insert(0,'/home/ester/git/LISA/PAA_LISA')
 import PAA_LISA
 from synthlisa import *

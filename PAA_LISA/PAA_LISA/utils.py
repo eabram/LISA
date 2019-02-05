@@ -206,15 +206,24 @@ class la():
 
         return [ang_x,ang_y]
 
-    def flatten(self,y):
+    def flatten(OBJ,y):
         ynew=[]
-        for i in range(0,len(y)):
-            try:
-                for j in range(0,len(y[i])):
-                    ynew.append(y[i][j])
-            except TypeError:
-                ynew.append(y[i])
+        check=True
+        try:
+            len(y)
+        except TypeError:
+            ynew = [y]
+            check=False
+            pass
         
+        if check==True:
+            for i in range(0,len(y)):
+                try:
+                    for j in range(0,len(y[i])):
+                        ynew.append(y[i][j])
+                except TypeError:
+                    ynew.append(y[i])
+            
         return ynew
 
 

@@ -27,10 +27,12 @@ class AIM():
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
             if side=='l':
-                func = self.wfe.data.PAA_func['l_out']
+                #func = self.wfe.data.PAA_func['l_out']
+                func = self.wfe.data.ang_out_l
                 #func_y = self.wfe.data.PAA_func['l_out']
             elif side=='r':
-                func = self.wfe.data.PAA_func['r_out']
+                #func = self.wfe.data.PAA_func['r_out']
+                func = self.wfe.data.ang_out_r
                 #func_y = self.wfe.data.PAA_func['r_out']
         
         elif select=='tele':
@@ -42,7 +44,7 @@ class AIM():
         t_all = self.wfe.data.t_all
         if dt==False:
             dt = t_all[1]-t_all[0]
-        t_vec = np.linspace(t_all[0],t_all[1],(t_all[1]-t_all[0])/dt)
+        t_vec = np.linspace(t_all[0],t_all[-1],(t_all[1]-t_all[0])/dt)
         val=[]
         for t in t_vec:
             val.append(func(i,t))
@@ -320,7 +322,7 @@ class AIM():
         x_list.append(x0)
         
         try:
-            PAAM_func = interpolate(np.array(x_list),np.array(steps))
+            PAAM_func = pack.functions.interpolate(np.array(x_list),np.array(steps))
         except ValueError:
             PAAM_func = lambda t: 0
         else:

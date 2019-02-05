@@ -6,7 +6,7 @@ from fractions import Fraction
 import math
 import datetime
 from scipy.interpolate import interp1d
-from scipy.interpolate import RegularGridInterpolator
+#from scipy.interpolate import RegularGridInterpolator
 from class_orbit import orbit
 import warnings
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
