@@ -2,7 +2,6 @@
 
 from synthlisa import *
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from fractions import Fraction
 import math
@@ -20,7 +19,6 @@ class orbit():
         if self.directory_imp != False:
             self.directory_imp=home+self.directory_imp
         directory_plot=kwargs.pop('directory_plot','/home/ester/git/synthlisa/figures')
-        plot_on=kwargs.pop('plot_on',False)
         self.scale=kwargs.pop('scale',1)
         self.read_max=kwargs.pop('read_max','all')
         self.timeunit = kwargs.pop('timeunit','days')
@@ -31,8 +29,6 @@ class orbit():
             self.import_file(read_max=self.read_max)
 
         self.calculations()
-        if plot_on==True:
-            self.plot_func(directory_plot)
 
     
     def ang_2vectors(self,v1,v2):
@@ -302,44 +298,3 @@ class orbit():
         self.COM = COM()
         normal_pos()
         angle_pos()
-
-
-
-    def plot_func(self,directory):
-        print("Figures will be saved in: "+directory)
-        def save_fig(f,directory,title=False,ext='.png'):
-            if not os.path.exists(directory):
-               os.makedirs(directory)
-            if title==False:
-                title="New_figure_"+datetime.datetime.now().isoformat()
-
-            f.savefig(directory+title+ext)
-
-        par=self.par
-
-  
-        
-        f1, axarr = plt.subplots(9,1)
-        count=1
-        for i in range(0,len(self.p[:,:,:])):
-            for j in range(0,len(self.p[i,0,:])):
-                axarr[count-1].plot(self.t,self.p[i,:,j])
-                axarr[count-1].set_title(par[count])
-                count=count+1
-
-        save_fig(f1,directory,title='positions')
-
-        f2, axarr = plt.subplots(len(self.ang)+1,1)
-        for i in range(0,len(self.ang)):
-            axarr[i].plot(self.t-self.t[0],self.ang[i])
-            axarr[i].set_xlabel('Time [days]')
-            axarr[i].set_ylabel('Angle [deg]')
-            axarr[i].set_title('Angle at spacecraft '+str(i+1))
-        axarr[3].plot(self.t-self.t[0],sum(self.ang))
-        save_fig(f2,directory,title='angles')
-
-
-        plt.show()
-
-
-

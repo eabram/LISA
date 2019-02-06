@@ -1,6 +1,6 @@
 from synthlisa import *
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import os
 from fractions import Fraction
 import math

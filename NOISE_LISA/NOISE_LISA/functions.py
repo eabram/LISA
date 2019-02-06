@@ -94,6 +94,20 @@ def flatten(y):
 
     return ynew
 
+def nanfilter(l):
+    l = flatten(l)
+    l_copy = []
+    for i in l:
+        if i!=np.nan:
+            l_copy.append(i)
+    
+    return l
+
+def nanmean(l):
+    return np.mean(nanfilter(l))
+
+
+
 
 def write(inp,title='',direct ='',extr='',list_inp=False):
     date = get_date(option='date')

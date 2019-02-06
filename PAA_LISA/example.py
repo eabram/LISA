@@ -1,9 +1,10 @@
 import PAA_LISA
 import os
+import parameters
 
 input_param = {
         'calc_method': 'Abram',
-        'plot_on':True, #If plots will be made
+        'plot_on':False, #If plots will be made
         'dir_savefig': os.getcwd(), # The directory where the figures will be saved. If False, it will be in the current working directory
         'noise_check':False,
         'home':'/home/ester/git/synthlisa/', # Home directory
@@ -24,4 +25,6 @@ input_param = {
         'delay': True,
         }
 
-data_all = PAA_LISA.runfile.do_run(input_param)
+
+para = parameters.__dict__
+data_all = PAA_LISA.runfile.do_run(input_param,para)
