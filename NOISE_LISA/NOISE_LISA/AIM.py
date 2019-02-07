@@ -413,8 +413,8 @@ class AIM():
         self.beam_l_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
         self.beam_r_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
 
-        self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_rl_func_tot(i,t)*c
-        self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_rr_func_tot(i,t)*c
+        self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_sl_func_tot(i,t)*c
+        self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_sr_func_tot(i,t)*c
 
         return 0
 

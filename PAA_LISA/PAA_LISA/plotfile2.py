@@ -1,5 +1,5 @@
 from imports import *
-import functions as utils
+import utils
 
 ### Plotting
 def do_plot(self,dir_extr,filename,new_folder,tstep,plot_on=True):

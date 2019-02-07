@@ -6,8 +6,8 @@ from fractions import Fraction
 import math
 import datetime
 from scipy.interpolate import interp1d
-from scipy.interpolate import RegularGridInterpolator
-from control import * # package for control theory calculations
+#from scipy.interpolate import RegularGridInterpolator
+#from control import * # package for control theory calculations
 import warnings
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 import scipy.optimize

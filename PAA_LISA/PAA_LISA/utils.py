@@ -6,7 +6,7 @@ from fractions import Fraction
 import math
 import datetime
 from scipy.interpolate import interp1d
-from scipy.interpolate import RegularGridInterpolator
+#from scipy.interpolate import RegularGridInterpolator
 import scipy.optimize
 from sympy import *
 

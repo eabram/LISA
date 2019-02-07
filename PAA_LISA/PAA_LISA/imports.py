@@ -19,7 +19,7 @@ import runfile
 import plotfile2
 import save_fig
 import writefile
-import functions as utils
+import utils
 
 year2sec=32536000
 day2sec=year2sec/365.25

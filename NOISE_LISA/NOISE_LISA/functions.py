@@ -164,40 +164,43 @@ def read(filename='',ret={},direct=''):
         for (dirpath, dirnames, filenames) in os.walk(direct):
             filenames.sort()
 
-    filename = direct+filenames[-1]
-    
-    readfile = open(filename,'r')
+    for filename_select in filenames:
+        #print(filenames)
+        print('Reading '+filename_select)
 
-    for line in readfile:
-        if 'Title' in line:
-            key1 = rdln(line.split(':: ')[-1])
-            keys = rdln(line).replace(':',',').split(',')
-            print(keys)
-            key0 = (keys[3]+' ')[1:-1]
-            key1 = (keys[5]+' ')[1:-1]
-            if key0 not in ret.keys():
-                ret[key0] = {}
-            if key1 not in ret[key0].keys():
-                ret[key0][key1]={}
-        elif 'Iteration' in line:
-            iteration = rdln(line.split(':: ')[-1])
-            if iteration not in ret[key0][key1].keys():
-                ret[key0][key1][iteration] = {}
-        elif 'ax_title' in line:
-            key2 = rdln(line.split(':: ')[-1])
-            if key2 not in ret[key0][key1][iteration].keys():
-                ret[key0][key1][iteration][key2]={}
-        elif 'Label' in line:
-            key3 = rdln(line.split(':: ')[-1])
-            if key3 not in ret[key0][key1][iteration][key2].keys():
-                ret[key0][key1][iteration][key2][key3]={}
-                ret[key0][key1][iteration][key2][key3]['x']=[]
-                ret[key0][key1][iteration][key2][key3]['y']=[]
-        else:
-            [x,y] = line.split(';')
-            ret[key0][key1][iteration][key2][key3]['x'].append(np.float64(rdln(x)))
-            ret[key0][key1][iteration][key2][key3]['y'].append(np.float64(rdln(y)))
+        readfile = open(direct+filename_select,'r')
 
+        for line in readfile:
+            if 'Title' in line:
+                key1 = rdln(line.split(':: ')[-1])
+                keys = rdln(line).replace(':',',').split(',')
+                print(keys)
+                key0 = (keys[3]+' ')[1:-1]
+                key1 = (keys[5]+' ')[1:-1]
+                if key0 not in ret.keys():
+                    ret[key0] = {}
+                if key1 not in ret[key0].keys():
+                    ret[key0][key1]={}
+            elif 'Iteration' in line:
+                iteration = rdln(line.split(':: ')[-1])
+                if iteration not in ret[key0][key1].keys():
+                    ret[key0][key1][iteration] = {}
+            elif 'ax_title' in line:
+                key2 = rdln(line.split(':: ')[-1])
+                if key2 not in ret[key0][key1][iteration].keys():
+                    ret[key0][key1][iteration][key2]={}
+            elif 'Label' in line:
+                key3 = rdln(line.split(':: ')[-1])
+                if key3 not in ret[key0][key1][iteration][key2].keys():
+                    ret[key0][key1][iteration][key2][key3]={}
+                    ret[key0][key1][iteration][key2][key3]['x']=[]
+                    ret[key0][key1][iteration][key2][key3]['y']=[]
+            else:
+                [x,y] = line.split(';')
+                ret[key0][key1][iteration][key2][key3]['x'].append(np.float64(rdln(x)))
+                ret[key0][key1][iteration][key2][key3]['y'].append(np.float64(rdln(y)))
+        
+        readfile.close()
     return ret
 
 

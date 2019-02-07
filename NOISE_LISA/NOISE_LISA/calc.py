@@ -200,7 +200,13 @@ class Noise():
         t_ret = {}
         for j in range(0,6):
             i=j%3
-            t_stop = self.data.t_plot[-1]
+            try:
+                t_stop = self.data.t_plot[-1]
+            except AttributeError:
+                self.data.t_plot=self.data.t_all
+                t_stop = self.data.t_plot[-1]
+                pass
+
             [t_ret_calc,noise_ret],func_noise = self.Noise_time(f0,f_max,N,PSD,t_stop)
             
 
