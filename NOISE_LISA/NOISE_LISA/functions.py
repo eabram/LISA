@@ -227,7 +227,6 @@ def coor_SC(wfe,i,t):
 
 def coor_tele(wfe,i,t,ang_tele,L_tele=2):
     # Retunrs the coordinate system of telescope (same as SC but rotated over ang_tele inplane)
-
     [r,n,x] = coor_SC(wfe,i,t)
     tele = r*L_tele
     tele = LA.rotate(tele,n,ang_tele)
