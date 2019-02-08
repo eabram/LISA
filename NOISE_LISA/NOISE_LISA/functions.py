@@ -163,44 +163,57 @@ def read(filename='',ret={},direct=''):
     if filename=='':
         for (dirpath, dirnames, filenames) in os.walk(direct):
             filenames.sort()
+    else:
+        print('Please select filename or leave blank')
 
-    for filename_select in filenames:
-        #print(filenames)
-        print('Reading '+filename_select)
+    
+    try:
+        filenames
+        go =True
+    except UnboundLocalError:
+        print('Please select proper title and/or directory')
+        go=False
+        pass
 
-        readfile = open(direct+filename_select,'r')
+    if go==True:
+        for filename_select in filenames:
+            #print(filenames)
+            print('Reading '+filename_select)
 
-        for line in readfile:
-            if 'Title' in line:
-                key1 = rdln(line.split(':: ')[-1])
-                keys = rdln(line).replace(':',',').split(',')
-                print(keys)
-                key0 = (keys[3]+' ')[1:-1]
-                key1 = (keys[5]+' ')[1:-1]
-                if key0 not in ret.keys():
-                    ret[key0] = {}
-                if key1 not in ret[key0].keys():
-                    ret[key0][key1]={}
-            elif 'Iteration' in line:
-                iteration = rdln(line.split(':: ')[-1])
-                if iteration not in ret[key0][key1].keys():
-                    ret[key0][key1][iteration] = {}
-            elif 'ax_title' in line:
-                key2 = rdln(line.split(':: ')[-1])
-                if key2 not in ret[key0][key1][iteration].keys():
-                    ret[key0][key1][iteration][key2]={}
-            elif 'Label' in line:
-                key3 = rdln(line.split(':: ')[-1])
-                if key3 not in ret[key0][key1][iteration][key2].keys():
-                    ret[key0][key1][iteration][key2][key3]={}
-                    ret[key0][key1][iteration][key2][key3]['x']=[]
-                    ret[key0][key1][iteration][key2][key3]['y']=[]
-            else:
-                [x,y] = line.split(';')
-                ret[key0][key1][iteration][key2][key3]['x'].append(np.float64(rdln(x)))
-                ret[key0][key1][iteration][key2][key3]['y'].append(np.float64(rdln(y)))
-        
-        readfile.close()
+            readfile = open(direct+filename_select,'r')
+
+            for line in readfile:
+                if 'Title' in line:
+                    key1 = rdln(line.split(':: ')[-1])
+                    keys = rdln(line).replace(':',',').split(',')
+                    print(keys)
+                    key0 = (keys[3]+' ')[1:-1]
+                    key1 = (keys[5]+' ')[1:-1]
+                    if key0 not in ret.keys():
+                        ret[key0] = {}
+                    if key1 not in ret[key0].keys():
+                        ret[key0][key1]={}
+                elif 'Iteration' in line:
+                    iteration = rdln(line.split(':: ')[-1])
+                    if iteration not in ret[key0][key1].keys():
+                        ret[key0][key1][iteration] = {}
+                elif 'ax_title' in line:
+                    key2 = rdln(line.split(':: ')[-1])
+                    if key2 not in ret[key0][key1][iteration].keys():
+                        ret[key0][key1][iteration][key2]={}
+                elif 'Label' in line:
+                    key3 = rdln(line.split(':: ')[-1])
+                    if key3 not in ret[key0][key1][iteration][key2].keys():
+                        ret[key0][key1][iteration][key2][key3]={}
+                        ret[key0][key1][iteration][key2][key3]['x']=[]
+                        ret[key0][key1][iteration][key2][key3]['y']=[]
+                else:
+                    [x,y] = line.split(';')
+                    ret[key0][key1][iteration][key2][key3]['x'].append(np.float64(rdln(x)))
+                    ret[key0][key1][iteration][key2][key3]['y'].append(np.float64(rdln(y)))
+            
+            readfile.close()
+
     return ret
 
 
@@ -216,18 +229,25 @@ def read(filename='',ret={},direct=''):
 LA = PAA_LISA.la()
 
 # Changes of coordinate system
-def coor_SC(wfe,i,t):
+def coor_SC(wfe,i,t,side):
     # r,n,x (inplane) format
+    if wfe.data.calc_method=='Waluschka':
+        if side=='l':
+            t_calc = t - wfe.data.L_rl_func_tot(i,t)
+        elif side=='r':
+            t_calc = t - wfe.data.L_rr_func_tot(i,t)
+    elif wfe.data.calc_method=='Abram':
+        t_calc=t
 
-    r = LA.unit(wfe.data.r_func(i,t))
-    n = LA.unit(wfe.data.n_func(i,t))
+    r = LA.unit(wfe.data.r_func(i,t_calc))
+    n = LA.unit(wfe.data.n_func(i,t_calc))
     x = np.cross(n,r)
 
     return np.array([r,n,x])
 
-def coor_tele(wfe,i,t,ang_tele,L_tele=2):
+def coor_tele(wfe,i,t,side,ang_tele,L_tele=2):
     # Retunrs the coordinate system of telescope (same as SC but rotated over ang_tele inplane)
-    [r,n,x] = coor_SC(wfe,i,t)
+    [r,n,x] = coor_SC(wfe,i,t,side)
     tele = r*L_tele
     tele = LA.rotate(tele,n,ang_tele)
     r = LA.unit(tele)
@@ -235,17 +255,14 @@ def coor_tele(wfe,i,t,ang_tele,L_tele=2):
 
     return np.array([r,n,x])
 
-def beam_tele(wfe,i,t,ang_tele,ang_paam):
+def beam_tele(wfe,i,t,side,ang_tele,ang_paam):
     # Retunrs the coordinate system of the transmitted beam (same as SC but rotated over ang_tele inplane and ang_tele outplane)
-    [r,n,x] = coor_tele(wfe,i,t,ang_tele) #Telescope coordinate system
+    [r,n,x] = coor_tele(wfe,i,t,side,ang_tele) #Telescope coordinate system
 
     r = LA.unit(LA.rotate(r,x,ang_paam)) # Rotate r in out of plane over ang_paam
     n = np.cross(r,x)
 
     return np.array([r,n,x])
-
-
-
 
 def i_slr(i):
     i_self = i
