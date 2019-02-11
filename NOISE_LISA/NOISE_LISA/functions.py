@@ -144,6 +144,22 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
                         xy = ax_calc.lines[l]._xy
                         for k in xy:
                             writefile.write(str(k[0])+';'+str(k[1])+'\n')
+        elif type(m)==tuple and type(m[3])==dict:
+            for out in m[0:-2]:
+                writefile.write(out+'\n')
+            for k in sorted(m[-1].keys()):
+                writefile.write(m[2]+' '+k+'\n')
+                for SC in sorted(m[-1][k].keys()):
+                    for side in sorted(m[-1][k][SC].keys()):
+                        if side=='l':
+                            side_wr='left'
+                        elif side=='r':
+                            side_wr='right'
+                        writefile.write('Label:: SC'+SC+', '+side_wr+'\n')
+                        for point in m[-1][k][SC][side]:
+                             writefile.write(str(point[0])+';'+str(point[1])+'\n')
+
+
             
 
     writefile.close()
@@ -201,6 +217,11 @@ def read(filename='',ret={},direct=''):
                     key2 = rdln(line.split(':: ')[-1])
                     if key2 not in ret[key0][key1][iteration].keys():
                         ret[key0][key1][iteration][key2]={}
+                elif 'Measurement' in line:
+                    key2 = rdln(line.split(':: ')[-1])
+                    if key2 not in ret[key0][key1][iteration].keys():
+                        ret[key0][key1][iteration][key2]={}
+ 
                 elif 'Label' in line:
                     key3 = rdln(line.split(':: ')[-1])
                     if key3 not in ret[key0][key1][iteration][key2].keys():
@@ -229,25 +250,21 @@ def read(filename='',ret={},direct=''):
 LA = PAA_LISA.la()
 
 # Changes of coordinate system
-def coor_SC(wfe,i,t,side):
+def coor_SC(wfe,i,t):
     # r,n,x (inplane) format
-    if wfe.data.calc_method=='Waluschka':
-        if side=='l':
-            t_calc = t - wfe.data.L_rl_func_tot(i,t)
-        elif side=='r':
-            t_calc = t - wfe.data.L_rr_func_tot(i,t)
-    elif wfe.data.calc_method=='Abram':
-        t_calc=t
+    t_calc=t
 
     r = LA.unit(wfe.data.r_func(i,t_calc))
     n = LA.unit(wfe.data.n_func(i,t_calc))
     x = np.cross(n,r)
+    #offset = wfe.data.LISA.putp(i,t)
 
     return np.array([r,n,x])
 
-def coor_tele(wfe,i,t,side,ang_tele,L_tele=2):
+def coor_tele(wfe,i,t,ang_tele):
     # Retunrs the coordinate system of telescope (same as SC but rotated over ang_tele inplane)
-    [r,n,x] = coor_SC(wfe,i,t,side)
+    L_tele = wfe.L_tele
+    [r,n,x] = coor_SC(wfe,i,t)
     tele = r*L_tele
     tele = LA.rotate(tele,n,ang_tele)
     r = LA.unit(tele)
@@ -255,9 +272,15 @@ def coor_tele(wfe,i,t,side,ang_tele,L_tele=2):
 
     return np.array([r,n,x])
 
-def beam_tele(wfe,i,t,side,ang_tele,ang_paam):
+def pos_tele(wfe,i,t,side,ang_tele):
+    offset = np.array(wfe.data.LISA.putp(i,t))
+    pointing = coor_tele(wfe,i,t,ang_tele)
+
+    return offset+pointing
+
+def beam_coor_out(wfe,i,t,ang_tele,ang_paam):
     # Retunrs the coordinate system of the transmitted beam (same as SC but rotated over ang_tele inplane and ang_tele outplane)
-    [r,n,x] = coor_tele(wfe,i,t,side,ang_tele) #Telescope coordinate system
+    [r,n,x] = coor_tele(wfe,i,t,ang_tele) #Telescope coordinate system
 
     r = LA.unit(LA.rotate(r,x,ang_paam)) # Rotate r in out of plane over ang_paam
     n = np.cross(r,x)

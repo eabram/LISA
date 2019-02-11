@@ -6,6 +6,9 @@ import NOISE_LISA as pack
 
 # tele and PAA aim
 class AIM():
+    global LA
+    LA = PAA_LISA.la()
+
     def __init__(self,wfe,**kwargs):
         print('Start calculating telescope and PAAM aim')
         
@@ -176,8 +179,8 @@ class AIM():
         # Calculating new pointing vectors and coordinate system
         self.tele_l_coor = lambda i,t: pack.fuctions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
         self.tele_r_coor = lambda i,t: pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))
-        self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))[0])*L_tele
-        self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))[0])*L_tele
+        self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,'l',self.tele_l_ang(i,t))[0])*L_tele
+        self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,'r',self.tele_r_ang(i,t))[0])*L_tele
 
         return 0
 
@@ -410,13 +413,78 @@ class AIM():
 
 
         # Calculating new pointing vectors and coordinate system
-        self.beam_l_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
-        self.beam_r_coor = lambda i,t: pack.functions.beam_tele(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
+        self.beam_l_coor = lambda i,t: pack.functions.beam_coor_out(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
+        self.beam_r_coor = lambda i,t: pack.functions.beam_coor_out(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
+       
+        # Calculating the Transmitted beam direction and position of the telescope aperture
+        self.beam_l_direction = lambda i,t: self.beam_l_coor(i,t)[0]
+        self.beam_r_direction = lambda i,t: self.beam_r_coor(i,t)[0]
+        self.beam_l_start = lambda i,t: self.beam_l_direction(i,t)+np.array(self.wfe.data.LISA.putp(i,t))
+        self.beam_r_start = lambda i,t: self.beam_r_direction(i,t)+np.array(self.wfe.data.LISA.putp(i,t))
 
-        self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_sl_func_tot(i,t)*c
-        self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_sr_func_tot(i,t)*c
+        #self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.L_tele
+        #self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_sl_func_tot(i,t)*c
+        #self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_l_func_tot(i,t))
+        #self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_sr_func_tot(i,t)*c
+        #self.beam_r_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_r_func_tot(i,t))
 
         return 0
+
+    def get_received_beam_duration(self,i,t,side,ksi=[0,0]):
+        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
+
+        # Calculate new tdel
+        #... code has to be adjusted for telescope length
+        if side=='l':
+            L_r = self.wfe.data.L_rl_func_tot(i_self,t)
+            L_s = self.wfe.data.L_sl_func_tot(i_self,t)
+        elif side=='r':
+            L_r = self.wfe.data.L_rr_func_tot(i_self,t)
+            L_s = self.wfe.data.L_sr_func_tot(i_self,t)
+ 
+        # Received beams (Waluschka)
+        if side=='l':
+            coor_start = self.beam_r_coor(i_left,t-L_r)
+            start =  self.beam_r_start(i_left,t-L_r)
+            if self.wfe.data.calc_method=='Abram':
+                end = self.beam_l_start(i_self,t)
+                coor_end = self.beam_l_coor(i_self,t)
+                direction = self.beam_l_direction(i_self,t)
+            else:
+                end = self.beam_l_start(i_self,t-L_r)
+                coor_end = self.beam_l_coor(i_self,t-L_r)
+                direction = self.beam_l_direction(i_self,t-L_r)
+
+        elif side=='r':
+            coor_start = self.beam_l_coor(i_right,t-L_r)
+            start =  self.beam_l_start(i_right,t-L_r)
+            if self.wfe.data.calc_method=='Abram':
+                end = self.beam_r_start(i_self,t)
+                coor_end = self.beam_r_coor(i_self,t)
+                direction = self.beam_r_direction(i_self,t)
+            else:
+                end = self.beam_r_start(i_self,t-L_r)
+                coor_end = self.beam_r_coor(i_self,t-L_r)
+                direction = self.beam_r_direction(i_self,t-L_r)
+        # ksi is in receiiving telescope frame so adapt ksi in beam send frame
+        [ksix,ksiy]=ksi
+
+        ksix_vec = coor_end[2]*ksiy
+        ksiy_vec = coor_end[1]*ksiy
+        end = end+ksix_vec+ksiy_vec
+        target_pos = LA.matmul(coor_start,end-start)
+        target_direction = LA.matmul(coor_start,direction)
+
+        return start,end,direction,target_pos,target_direction,coor_start,coor_end
+    
+
+
+
+
+
+
+
+
 
     
     def step_response_calc(self,function,i,t,dt,tau,mode='overdamped'):

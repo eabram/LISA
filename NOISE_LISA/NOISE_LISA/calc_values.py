@@ -4,6 +4,66 @@ from parameters import *
 import PAA_LISA
 import NOISE_LISA
 
+def make_t_calc(wfe,t0=False,tend=False,dt=False):
+    calc=False
+    if dt==False:
+        try:
+            wfe.t_calc
+        except AttributeError:
+            calc=True
+            dt = wfe.t_all[1]-wfe.t_all[0]
+            pass
+    else:
+        calc=True
+
+    if calc==True:
+        if t0==False:
+            t0 = wfe.t_all[0]
+        if tend==False:
+            tend = wfe.t_all[-1]
+        N = int(np.round((tend-t0)/dt))+1
+        t_plot = np.linspace(t0,tend,N)
+
+    elif calc==False:
+        t_plot = wfe.t_calc
+
+    return t_plot
+
+
+def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
+    t_vec = make_t_calc(wfe,dt=dt)
+    if type(SC)==int:
+        SC = [SC]
+    if type(side)==str:
+        side=[side]
+
+    title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
+    iteration = 'Iteration:: '+ str(wfe.iteration)
+    measurement = 'Measurement:: '+meas
+
+    ret={}
+    ret['mean']={}
+    ret['var']={}
+    for i in SC:
+        ret['mean'][str(i)]={}
+        ret['var'][str(i)]={}
+        for s in side:
+            mean=[]
+            var=[]
+            for t in t_vec:
+                calc = wfe.calc_piston_val(i,t,s,ret=meas)
+                mean.append([t,calc[0]])
+                var.append([t,calc[1]])
+            ret['mean'][str(i)][s]=mean
+            ret['var'][str(i)][s]=var
+
+    return title, iteration, measurement, ret
+            
+
+
+
+
+
 def ttl(wfe,tele_control=False,PAAM_control_method=False,simple=True):
     
     if tele_control==False:
