@@ -16,7 +16,7 @@ class AIM():
         if self.PAAM_method =='SS_lim':
             self.FOV_control = kwargs.pop('FOV_control',1e-6)
         self.tele_method = wfe.tele_control
-        self.offset_control = kwargs.pop('offset_control',True)
+        self.offset_control = kwargs.pop('offset_control',False)
         self.compensation_tele = kwargs.pop('compensation_tele',True)
         global LA
         LA = PAA_LISA.la()
@@ -179,8 +179,8 @@ class AIM():
         # Calculating new pointing vectors and coordinate system
         self.tele_l_coor = lambda i,t: pack.fuctions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
         self.tele_r_coor = lambda i,t: pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))
-        self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,'l',self.tele_l_ang(i,t))[0])*L_tele
-        self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,'r',self.tele_r_ang(i,t))[0])*L_tele
+        self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))[0])*L_tele
+        self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))[0])*L_tele
 
         return 0
 

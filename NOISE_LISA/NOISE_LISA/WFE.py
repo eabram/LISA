@@ -87,7 +87,7 @@ class WFE():
         self.data = data
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=True,iteration=0): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0): #...add more variables
         self.iteration=iteration 
         if tele_method==False:
             tele_method = self.tele_control
@@ -484,9 +484,17 @@ class WFE():
         elif ret=='power':
             r = ((yoff_0**2)+(xoff_0**2))**0.5
             u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
-            print('ret')
-            print(u)
+            #print('ret')
+            #print(u)
             return (abs(u)**2)[0]
+        elif ret=='r':
+            return ((yoff_0**2)+(xoff_0**2))**0.5
+        elif ret=='FOV':
+            r = ((yoff_0**2)+(xoff_0**2))**0.5
+            z = zoff_0
+            return np.arctan(r/z)
+        elif ret=='target_direction':
+            return target_direction
 
 
 
