@@ -484,6 +484,7 @@ class WFE():
         elif ret=='power':
             r = ((yoff_0**2)+(xoff_0**2))**0.5
             u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
+            print('ret')
             print(u)
             return (abs(u)**2)[0]
 
