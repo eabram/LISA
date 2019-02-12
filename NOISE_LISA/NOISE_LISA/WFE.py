@@ -234,7 +234,13 @@ class WFE():
         labda = self.data.labda
         k = (2*np.pi)/labda
         
-        dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
+        try:
+            dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
+        except IndexError:
+            if len(xlist)==1 and len(ylist)==1:
+                dksi = (self.D**2)*(np.pi/4.0)
+            pass
+
         ret=0
         for i in range(0,len(xlist)):
             for j in range(0,len(ylist)):
@@ -300,7 +306,10 @@ class WFE():
                 ylist = self.ylist
 
         Nbins = len(xlist)
-        step = xlist[1]-xlist[0]
+        if len(xlist)!=0:
+            step = xlist[1]-xlist[0]
+        else:
+            step = self.D
         ps = np.empty((Nbins,Nbins),dtype=dType)
         for i in range(0,len(xlist)):
             for j in range(0,len(ylist)):
@@ -472,6 +481,10 @@ class WFE():
 #            return zoff_tilt
         elif ret=='z_extra':
             return z_extra
+        elif ret=='power':
+            r = ((yoff_0**2)+(xoff_0**2))**0.5
+            u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
+            return (abs(u)**2)[0]
 
 
 

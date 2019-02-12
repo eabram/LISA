@@ -177,6 +177,7 @@ def read(filename='',ret={},direct=''):
         direct = get_folder()
 
     if filename=='':
+        f_get=[]
         for (dirpath, dirnames, filenames) in os.walk(direct):
             filenames.sort()
     else:
