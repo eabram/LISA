@@ -17,6 +17,8 @@ class WFE():
         self.data = kwargs.pop('data',False)
         adjust={}
         adjust['select']= kwargs.pop('orbit','')
+        adjust['dir_orbits']=kwargs.pop('dir_orbits',os.getcwd())
+        adjust['home']=kwargs.pop('home',os.getcwd())
         adjust['length_calc']= kwargs.pop('duration',40)
         adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
 
@@ -234,12 +236,10 @@ class WFE():
         labda = self.data.labda
         k = (2*np.pi)/labda
         
-        try:
+        if len(xlist)==1 and len(ylist)==1:
+            dksi = (self.D**2)*(np.pi/4.0)
+        else:
             dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
-        except IndexError:
-            if len(xlist)==1 and len(ylist)==1:
-                dksi = (self.D**2)*(np.pi/4.0)
-            pass
 
         ret=0
         for i in range(0,len(xlist)):
