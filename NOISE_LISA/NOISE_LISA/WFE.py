@@ -506,9 +506,10 @@ class WFE():
         elif ret=='r':
             return ((yoff_0**2)+(xoff_0**2))**0.5
         elif ret=='FOV':
-            wfront_direction = np.array([np.cos(-angy_tot)*np.cos(-angx_tot),np.sin(-angy_tot),np.sin(-angx_tot)])
+            #wfront_direction = np.array([np.cos(-angy_tot)*np.cos(-angx_tot),np.sin(-angy_tot),np.sin(-angx_tot)])
             #return PAA_LISA.la().angle(direction,-target_pos)
-            return PAA_LISA.la().angle(direction,-wfront_direction)
+            return np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
+            #return PAA_LISA.la().angle(direction,-wfront_direction)
         elif ret=='wfront_direction':
             wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])
             print(wfront_direction)
