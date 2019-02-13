@@ -239,9 +239,70 @@ def read(filename='',ret={},direct=''):
     return ret
 
 
- 
+### Pointing functions
+
+### Telescope pointing
+def get_extra_angle(wfe,SC,side,component,tmin=False,tmax=False,ret='value'):
+    if ret=='value':
+        A = NOISE_LISA.calc_values.piston(wfe,SC=[SC],side=[side],dt=False,meas='R_vec_tele_rec')
+        WF = A[3]['mean'][str(SC)][side]
+        t=[]
+        angx=[]
+        angy=[]
+        ang=[]
+        if tmin==False:
+            tmin = wfe.t_all[0]
+        if tmax==False:
+            tmax = wfe.t_all[-1]
+        for i in range(0,len(WF)):
+            vec = -WF[i][1]
+            ang.append(PAA_LISA.la().angle(vec,np.array([1,0,0])))
+            t.append(WF[i][0])
+            if t[-1]>=tmin and t[-1]<=tmax:
+                angx.append(np.sign(vec[2])*np.arctan(abs(vec[2]/vec[0])))
+                angy.append(np.sign(vec[1])*np.arctan(abs(vec[1]/vec[0])))
+        
+        if component=='tele':
+            return angx
+        elif component=='PAAM':
+            return angy
+
+    elif ret=='function':
+        vec = lambda t: -wfe.calc_piston_val(SC,t,side,ret='R_vec_tele_rec')
+        if component=='tele':
+            angx = lambda t: np.sign(vec(t)[2])*np.arctan(abs(vec(t)[2]/vec(t)[0]))
+            return angx
+        elif component=='PAAM':
+            angy = lambda t: np.sign(vec(t)[1])*np.arctan(abs(vec(t)[1]/vec(t)[0]))
+            return angy
+
+
+def get_extra_ang_mean(wfe,component):
+    offset_l=[]
+    offset_r=[]
+    for SC in range(1,4):
+        offset_l.append(np.mean(get_extra_angle(wfe,SC,'l',component,ret='value')))
+        offset_r.append(np.mean(get_extra_angle(wfe,SC,'r',component,ret='value')))
+
+    return [offset_l,offset_r]
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -52,8 +52,12 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
             var=[]
             for t in t_vec:
                 calc = wfe.calc_piston_val(i,t,s,ret=meas)
-                mean.append([t,calc[0]])
-                var.append([t,calc[1]])
+                if calc[-1]=='vec':
+                    mean.append([t,calc[0]])
+                    var.append([t,np.nan])
+                else:
+                    mean.append([t,calc[0]])
+                    var.append([t,calc[1]])
             ret['mean'][str(i)][s]=mean
             ret['var'][str(i)][s]=var
 

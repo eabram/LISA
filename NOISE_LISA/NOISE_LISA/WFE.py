@@ -87,7 +87,13 @@ class WFE():
         self.data = data
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False): #...add more variables
+        if tele_ang_extra==True:
+            tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
+        if PAAM_ang_extra==True:
+            PAAM_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'PAAM')
+
+
         self.iteration=iteration 
         if tele_method==False:
             tele_method = self.tele_control
@@ -101,7 +107,7 @@ class WFE():
 
         aim = AIM(self,offset_control=offset_control)
 
-        aim.tele_aim(method=tele_method,iteration=iteration)
+        aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
         aim.PAAM_control(method=PAAM_method)
         #self.tele_control = aim.tele_method
         #self.PAAM_control_method = aim.PAAM_method
@@ -484,17 +490,25 @@ class WFE():
         elif ret=='power':
             r = ((yoff_0**2)+(xoff_0**2))**0.5
             u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
-            #print('ret')
-            #print(u)
-            return (abs(u)**2)[0]
+            ang = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            return (abs(u)**2)[0]*np.cos(ang)
         elif ret=='r':
             return ((yoff_0**2)+(xoff_0**2))**0.5
         elif ret=='FOV':
-            r = ((yoff_0**2)+(xoff_0**2))**0.5
-            z = zoff_0
-            return np.arctan(r/z)
+            wfront_direction = np.array([np.cos(-angy_tot)*np.cos(-angx_tot),np.sin(-angy_tot),np.sin(-angx_tot)])
+            #return PAA_LISA.la().angle(direction,-target_pos)
+            return PAA_LISA.la().angle(direction,-wfront_direction)
+        elif ret=='wfront_direction':
+            wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])
+            print(wfront_direction)
+            return wfront_direction[0]
         elif ret=='target_direction':
             return target_direction
+        elif ret=='R_vec_beam_send':
+            return R_vec_beam_send
+        elif ret=='R_vec_tele_rec':
+            return R_vec_tele_rec
+        
 
 
 
@@ -520,15 +534,21 @@ class WFE():
         else:
             xlist=False
             ylist=False
-        piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
-        N_flat = PAA_LISA.utils.flatten(piston_ttl)
-        N = len(N_flat) - np.sum(np.isnan(N_flat))
-         
+        
         try:
-            return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
-        except RuntimeWarning:
-            print(piston(0,0))
-            return np.nan,np.nan
+            piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
+            N_flat = PAA_LISA.utils.flatten(piston_ttl)
+            N = len(N_flat) - np.sum(np.isnan(N_flat))
+             
+            try:
+                return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
+            except RuntimeWarning:
+                print(piston(0,0))
+                return np.nan,np.nan
+        except ValueError,e:
+            if str(e)=='setting an array element with a sequence.':
+                return piston(0,0),'vec'
+
 
     def piston_val(self):
         self.piston_val_l = lambda i,t: self.calc_piston_val(i,t,'l',ret='piston')

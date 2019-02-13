@@ -100,7 +100,8 @@ class AIM():
         return 0
 
 
-    def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0):
+    def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False):
+
         self.tele_control_ang_fc()
 
         if method == False:
@@ -146,13 +147,15 @@ class AIM():
             tele_r = tele_r
 
         elif method=='no control':
-            self.do_static_tele_angle('tele')
-            if self.offset_control==True:
-                tele_l = lambda i,t: self.offset_tele_l(i)
-                tele_r = lambda i,t: self.offset_tele_r(i)
-            elif self.offset_control==False:
-                tele_l = lambda i,t: np.radians(-30)
-                tele_r = lambda i,t: np.radians(30)
+            #self.do_static_tele_angle('tele')
+            if tele_ang_extra==False:
+                offset_l = [0,0,0]
+                offset_r = [0,0,0]
+            else:
+                [offset_l,offset_r] = tele_ang_extra
+
+            tele_l = lambda i,t: np.radians(-30)+offset_l[i-1]*0.5
+            tele_r = lambda i,t: np.radians(30)+offset_r[i-1]*0.5
 
 
         elif method=='SS': #After dt, the telescope is pointed again
