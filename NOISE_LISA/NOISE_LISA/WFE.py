@@ -85,9 +85,17 @@ class WFE():
             data = data_all[str(k+1)]
         self.t_vec = data.t_all
         self.data = data
+        self.status_init_pointing=False
+
+    def init_pointing(self):
+        self.get_pointing(PAAM_method='no control',tele_method='no control',iteration=0,tele_ang_extra=False,init=True)
+        self.status_init_pointing=True
+
+        return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False): #...add more variables
+        
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
         if PAAM_ang_extra==True:
@@ -111,10 +119,13 @@ class WFE():
         aim.PAAM_control(method=PAAM_method)
         #self.tele_control = aim.tele_method
         #self.PAAM_control_method = aim.PAAM_method
-
-        self.aim = aim
-        self.do_mean_angin()
-        self.piston_val()
+        
+        if init==True:
+            self.aim0 = aim
+        else:
+            self.aim = aim
+            self.do_mean_angin()
+            self.piston_val()
 
     # Beam properties equations
 
@@ -362,7 +373,7 @@ class WFE():
         if mode=='auto':
             [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
             
-            start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+            start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
             
             n_beam = beam_send_coor[1]
             n_tele = tele_rec_coor[1]
@@ -508,6 +519,8 @@ class WFE():
             return R_vec_beam_send
         elif ret=='R_vec_tele_rec':
             return R_vec_tele_rec
+        elif ret=='tilt':
+            return PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
         
 
 

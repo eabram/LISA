@@ -92,10 +92,35 @@ class AIM():
 
         return ang
 
+    def get_aim_accuracy(self,i,t,side):
+        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
+        if side=='l':
+            i_calc = i_left
+            s_calc = 'r'
+        elif side=='r':
+            i_calc=i_right
+            s_calc='l'
+
+        ret =  self.wfe.aim0.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
+        [z,y,x] = ret[3]
+        delay = ret[7]
+        angx = np.sign(x)*abs(np.arctan(x/z))
+        angy = np.sign(x)*abs(np.arctan(x/z))
+
+        return [angx,angy,delay]
+
     def tele_control_ang_fc(self):
         # Obtaines functions for optimal telescope pointing vector
-        self.tele_ang_l_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='l')
-        self.tele_ang_r_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='r')
+        delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[2]
+        delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[2]
+        ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[0]
+        ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[0]
+ 
+        self.tele_ang_l_fc = lambda i,t: self.wfe.aim0.tele_l_ang(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
+        self.tele_ang_r_fc = lambda i,t: self.wfe.aim0.tele_r_ang(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
+
+        #self.tele_ang_l_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='l')
+        #self.tele_ang_r_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='r')
 
         return 0
 
@@ -478,7 +503,7 @@ class AIM():
         target_pos = LA.matmul(coor_start,end-start)
         target_direction = LA.matmul(coor_start,direction)
 
-        return start,end,direction,target_pos,target_direction,coor_start,coor_end
+        return start,end,direction,target_pos,target_direction,coor_start,coor_end,L_s,L_r
     
 
 
