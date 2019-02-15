@@ -227,12 +227,12 @@ def read(filename='',ret={},direct=''):
                     key3 = rdln(line.split(':: ')[-1])
                     if key3 not in ret[key0][key1][iteration][key2].keys():
                         ret[key0][key1][iteration][key2][key3]={}
-                        ret[key0][key1][iteration][key2][key3]['x']=[]
-                        ret[key0][key1][iteration][key2][key3]['y']=[]
+                        ret[key0][key1][iteration][key2][key3]['x']=np.array([])
+                        ret[key0][key1][iteration][key2][key3]['y']=np.array([])
                 else:
                     [x,y] = line.split(';')
-                    ret[key0][key1][iteration][key2][key3]['x'].append(np.float64(rdln(x)))
-                    ret[key0][key1][iteration][key2][key3]['y'].append(np.float64(rdln(y)))
+                    ret[key0][key1][iteration][key2][key3]['x'] = np.append(ret[key0][key1][iteration][key2][key3]['x'],np.float64(rdln(x)))
+                    ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
             
             readfile.close()
 

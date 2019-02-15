@@ -88,13 +88,13 @@ class WFE():
         self.status_init_pointing=False
 
     def init_pointing(self):
-        self.get_pointing(PAAM_method='no control',tele_method='no control',iteration=0,tele_ang_extra=False,init=True)
+        self.get_pointing(PAAM_method='no control',tele_method='no control',iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=True)
         self.status_init_pointing=True
 
         return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=True,init=False): #...add more variables
         
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -116,7 +116,7 @@ class WFE():
         aim = AIM(self,offset_control=offset_control)
 
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
-        aim.PAAM_control(method=PAAM_method)
+        aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
         #self.tele_control = aim.tele_method
         #self.PAAM_control_method = aim.PAAM_method
         
@@ -373,7 +373,12 @@ class WFE():
         if mode=='auto':
             [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
             
-            start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+            try:
+                start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+            except AttributeError,e:
+                if str(e)=="WFE instance has no attribute 'aim'":
+                    start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
+
             
             n_beam = beam_send_coor[1]
             n_tele = tele_rec_coor[1]
@@ -522,9 +527,8 @@ class WFE():
             return R_vec_tele_rec
         elif ret=='tilt':
             return PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
-        
-
-
+        elif ret=='beam_inc_tele_frame':
+            return bd_receiving_frame
 
         elif ret=='surface':
             thmn11 = np.arctan(angy/angx)

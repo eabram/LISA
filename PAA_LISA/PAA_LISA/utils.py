@@ -493,7 +493,7 @@ def velocity_abs_calc(OBJ,i_select,t,hstep):
 
 
 def velocity_abs(OBJ,hstep=1.0):
-    hstep = np.float64(hstep)
+    hstep = np.float128(hstep)
 
     #v_ret=[]
     #for i_select in range(1,4):
@@ -543,7 +543,7 @@ def velocity_calc(OBJ,i,time,hstep,side,rs):
 
 def velocity_func(OBJ,hstep=1.0):
     LA=la()
-    hstep = np.float64(hstep)
+    hstep = np.float128(hstep)
     OBJ.v_l= lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',0)
     OBJ.v_in_l = lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',1)
     OBJ.v_out_l = lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',2)

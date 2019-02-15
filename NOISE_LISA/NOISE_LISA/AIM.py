@@ -102,10 +102,15 @@ class AIM():
             s_calc='l'
 
         ret =  self.wfe.aim0.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
-        [z,y,x] = ret[3]
+        [z,y,x] = PAA_LISA.la().unit(ret[3])
         delay = ret[7]
         angx = np.sign(x)*abs(np.arctan(x/z))
-        angy = np.sign(x)*abs(np.arctan(x/z))
+        
+        # Because y is small: adjusted calculation
+        A = z-np.sign(z)*1
+        B = 1-abs(1+np.sign(z)*2*A)
+        y_new = (B-x**2)**0.5
+        angy = np.sign(y)*abs(np.arctan(y_new/z))
 
         return [angx,angy,delay]
 
@@ -205,7 +210,7 @@ class AIM():
         
         
         # Calculating new pointing vectors and coordinate system
-        self.tele_l_coor = lambda i,t: pack.fuctions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
+        self.tele_l_coor = lambda i,t: pack.functions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))
         self.tele_r_coor = lambda i,t: pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))
         self.tele_l_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_l_ang(i,t))[0])*L_tele
         self.tele_r_vec = lambda i,t: LA.unit(pack.functions.coor_tele(self.wfe,i,t,self.tele_r_ang(i,t))[0])*L_tele
@@ -375,7 +380,18 @@ class AIM():
 
         return ret
 
-    def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=1,mode='overdamped'):
+    def PAAM_control_ang_fc(self):
+        # Obtaines functions for optimal telescope pointing vector
+        delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[2]
+        delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[2]
+        ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[1]
+        ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[1]
+
+        self.PAAM_ang_l_fc = lambda i,t: self.wfe.aim0.beam_l_ang(i,t)+ang_PAAM_extra_l(i,t+delay_l(i,t))
+        self.PAAM_ang_r_fc = lambda i,t: self.wfe.aim0.beam_r_ang(i,t)+ang_PAAM_extra_r(i,t+delay_r(i,t))
+
+
+    def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=1,mode='overdamped',PAAM_ang_extra=False):
         if method==False:
             method = self.PAAM_method
         else:
@@ -384,8 +400,13 @@ class AIM():
         print('The PAAM control method is: ' +method)
         print(' ')
 
-        ang_fc_l = lambda i,t: self.wfe.data.PAA_func['l_out'](i,t)
-        ang_fc_r = lambda i,t: self.wfe.data.PAA_func['r_out'](i,t)
+        #ang_fc_l = lambda i,t: self.wfe.data.PAA_func['l_out'](i,t)
+        #ang_fc_r = lambda i,t: self.wfe.data.PAA_func['r_out'](i,t)
+        self.PAAM_control_ang_fc()
+        ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
+        ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
+        
+        
         self.PAAM_fc_ang_l = ang_fc_l
         self.PAAM_fc_ang_r = ang_fc_r
 
@@ -396,13 +417,14 @@ class AIM():
             ang_r = ang_fc_r
         elif method=='no control':
             self.do_static_tele_angle('PAAM')
-            if self.offset_control==True:
-                ang_l = lambda i,t: self.offset_PAAM_l(i)
-                ang_r = lambda i,t: self.offset_PAAM_r(i)
-
-            elif self.offset_control==False:
+            if PAAM_ang_extra==False:
                 ang_l = lambda i,t: 0
                 ang_r = lambda i,t: 0
+            else:
+                [offset_l,offset_r] = PAAM_ang_extra
+                ang_l = lambda i,t: offset_l[i-1]*0.5
+                ang_r = lambda i,t: offset_r[i-1]*0.5
+
         elif method=='SS':
             ang_l_SS = lambda i,t: ang_fc_l(i,t-(t%dt)) # Adjusting the pointing every dt seconds
             ang_r_SS = lambda i,t: ang_fc_r(i,t-(t%dt))
