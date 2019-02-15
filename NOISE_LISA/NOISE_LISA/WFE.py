@@ -533,6 +533,34 @@ class WFE():
             return PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
         elif ret=='beam_inc_tele_frame':
             return bd_receiving_frame
+        elif ret=='all_val':
+            retval={}
+            retval['piston']=piston
+            retval['angx_tot'] = angx_tot
+            retval['angx_tilt'] = angx
+            retval['angx_off'] = angxoff
+            retval['angy_tot'] = angy_tot
+            retval['angy_tilt'] = angy
+            retval['angy_off'] = angyoff
+            retval['zoff_0']=zoff_o
+            retval['z_extra']=z_extra
+            r = ((yoff_0**2)+(xoff_0**2))**0.5
+            retval['r']=r
+            u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
+            ang = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            power =  (abs(u)**2)[0]*np.cos(ang)
+            retval['power']=power
+            retval['FOV'] = np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
+            wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])
+            retval['wfront_direction'] = wfront_direction[0]
+            retval['target_direction']=target_direction
+            retval['R_vec_tele_rec']=R_vec_tele_rec
+            retval['tilt'] = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            retval['beam_inc_tele_frame'] = bd_receiving_frame
+
+            return retval
+
+
 
         elif ret=='surface':
             thmn11 = np.arctan(angy/angx)

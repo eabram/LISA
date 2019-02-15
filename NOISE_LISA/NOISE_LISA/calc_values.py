@@ -36,32 +36,45 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
         SC = [SC]
     if type(side)==str:
         side=[side]
+    
+    len_short=False
+    if len(meas)==1:
+        meas = [meas]
+        len_short=True
 
-    title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
-    iteration = 'Iteration:: '+ str(wfe.iteration)
-    measurement = 'Measurement:: '+meas
 
-    ret={}
-    ret['mean']={}
-    ret['var']={}
-    for i in SC:
-        ret['mean'][str(i)]={}
-        ret['var'][str(i)]={}
-        for s in side:
-            mean=[]
-            var=[]
-            for t in t_vec:
-                calc = wfe.calc_piston_val(i,t,s,ret=meas)
-                if calc[-1]=='vec':
-                    mean.append([t,calc[0]])
-                    var.append([t,np.nan])
-                else:
-                    mean.append([t,calc[0]])
-                    var.append([t,calc[1]])
-            ret['mean'][str(i)][s]=mean
-            ret['var'][str(i)][s]=var
+    ret_all={}
+    for m in meas:
+        title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
+        iteration = 'Iteration:: '+ str(wfe.iteration)
+        measurement = 'Measurement:: '+meas
 
-    return title, iteration, measurement, ret
+        ret={}
+        ret['mean']={}
+        ret['var']={}
+        for i in SC:
+            ret['mean'][str(i)]={}
+            ret['var'][str(i)]={}
+            for s in side:
+                mean=[]
+                var=[]
+                for t in t_vec:
+                    calc = wfe.calc_piston_val(i,t,s,ret=meas)
+                    if calc[-1]=='vec':
+                        mean.append([t,calc[0]])
+                        var.append([t,np.nan])
+                    else:
+                        mean.append([t,calc[0]])
+                        var.append([t,calc[1]])
+                ret['mean'][str(i)][s]=mean
+                ret['var'][str(i)][s]=var
+        
+        ret_all[m] title, iteration, measurement, ret
+
+    if len_short==True:
+        return ret_all[meas[0]]
+    else:
+        return ret_all
             
 
 
