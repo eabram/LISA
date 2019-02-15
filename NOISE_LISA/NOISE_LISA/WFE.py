@@ -374,14 +374,18 @@ class WFE():
             [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
             
             try:
-                start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+                val = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
             except AttributeError,e:
                 if str(e)=="WFE instance has no attribute 'aim'":
-                    start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
+                    val = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
+                    #start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
 
             
-            n_beam = beam_send_coor[1]
-            n_tele = tele_rec_coor[1]
+            n_beam = val['coor_start'][1]
+            n_tele = val['coor_end'][1]
+            target_pos = val['target_pos']
+            beam_send_coor = val['coor_start']
+            tele_rec_coor = val['coor_end']
 
             np.dot(n_beam,n_tele)
 #            if side=='l':

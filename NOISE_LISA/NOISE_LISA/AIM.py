@@ -102,15 +102,12 @@ class AIM():
             s_calc='l'
 
         ret =  self.wfe.aim0.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
-        [z,y,x] = PAA_LISA.la().unit(ret[3])
-        delay = ret[7]
-        angx = np.sign(x)*abs(np.arctan(x/z))
+        [z,y,x] = LA.matmul(ret['coor_end'],ret['beam_in'])
         
-        # Because y is small: adjusted calculation
-        A = z-np.sign(z)*1
-        B = 1-abs(1+np.sign(z)*2*A)
-        y_new = (B-x**2)**0.5
-        angy = np.sign(y)*abs(np.arctan(y_new/z))
+        angx = np.sign(x)*abs(np.arctan(x/z))
+        angy = np.sign(y)*abs(np.arctan(y/z))
+        
+        delay = ret['L_r']
 
         return [angx,angy,delay]
 
@@ -479,6 +476,7 @@ class AIM():
         #self.beam_r_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_r_func_tot(i,t))
 
         return 0
+    
 
     def get_received_beam_duration(self,i,t,side,ksi=[0,0]):
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
@@ -491,31 +489,37 @@ class AIM():
         elif side=='r':
             L_r = self.wfe.data.L_rr_func_tot(i_self,t)
             L_s = self.wfe.data.L_sr_func_tot(i_self,t)
- 
+
         # Received beams (Waluschka)
         if side=='l':
             coor_start = self.beam_r_coor(i_left,t-L_r)
             start =  self.beam_r_start(i_left,t-L_r)
+            direction_in = self.beam_r_direction(i_left,t-L_r)
             if self.wfe.data.calc_method=='Abram':
                 end = self.beam_l_start(i_self,t)
-                coor_end = self.beam_l_coor(i_self,t)
-                direction = self.beam_l_direction(i_self,t)
+                #coor_end = self.beam_l_coor(i_self,t)
+                coor_end = self.tele_l_coor(i_self,t)
+                direction_out = self.beam_l_direction(i_self,t)
             else:
-                end = self.beam_l_start(i_self,t-L_r)
-                coor_end = self.beam_l_coor(i_self,t-L_r)
-                direction = self.beam_l_direction(i_self,t-L_r)
+                end = self.beam_l_start(i_self,t)
+                #coor_end = self.beam_l_coor(i_self,t-L_r)
+                coor_end = self.tele_l_coor(i_self,t)
+                direction_out = self.beam_l_direction(i_self,t)
 
         elif side=='r':
             coor_start = self.beam_l_coor(i_right,t-L_r)
             start =  self.beam_l_start(i_right,t-L_r)
+            direction_in = self.beam_l_direction(i_right,t-L_r)
             if self.wfe.data.calc_method=='Abram':
                 end = self.beam_r_start(i_self,t)
-                coor_end = self.beam_r_coor(i_self,t)
-                direction = self.beam_r_direction(i_self,t)
+                #coor_end = self.beam_r_coor(i_self,t)
+                coor_end = self.tele_r_coor(i_self,t)
+                direction_out = self.beam_r_direction(i_self,t)
             else:
-                end = self.beam_r_start(i_self,t-L_r)
-                coor_end = self.beam_r_coor(i_self,t-L_r)
-                direction = self.beam_r_direction(i_self,t-L_r)
+                end = self.beam_r_start(i_self,t)
+                #coor_end = self.beam_r_coor(i_self,t)
+                coor_end = self.tele_r_coor(i_self,t)
+                direction_out = self.beam_r_direction(i_self,t)
         # ksi is in receiiving telescope frame so adapt ksi in beam send frame
         [ksix,ksiy]=ksi
 
@@ -523,9 +527,22 @@ class AIM():
         ksiy_vec = coor_end[1]*ksiy
         end = end+ksix_vec+ksiy_vec
         target_pos = LA.matmul(coor_start,end-start)
-        target_direction = LA.matmul(coor_start,direction)
+        #target_direction = LA.matmul(coor_start,direction)
+        
 
-        return start,end,direction,target_pos,target_direction,coor_start,coor_end,L_s,L_r
+        ret={}
+        ret['start'] = start
+        ret['end'] = end
+        ret['beam_out'] = direction_out
+        ret['beam_in'] = direction_in
+        ret['target_pos'] = target_pos
+        #ret['target_direction'] = target_direction
+        ret['coor_start'] = coor_start
+        ret['coor_end'] = coor_end
+        ret['L_s'] = L_s
+        ret['L_r'] = L_r
+
+        return ret
     
 
 
