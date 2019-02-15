@@ -501,10 +501,10 @@ class AIM():
                 coor_end = self.tele_l_coor(i_self,t)
                 direction_out = self.beam_l_direction(i_self,t)
             else:
-                end = self.beam_l_start(i_self,t)
+                end = self.beam_l_start(i_self,t-L_r)
                 #coor_end = self.beam_l_coor(i_self,t-L_r)
                 coor_end = self.tele_l_coor(i_self,t)
-                direction_out = self.beam_l_direction(i_self,t)
+                direction_out = self.beam_l_direction(i_self,t+L_s)
 
         elif side=='r':
             coor_start = self.beam_l_coor(i_right,t-L_r)
@@ -516,10 +516,10 @@ class AIM():
                 coor_end = self.tele_r_coor(i_self,t)
                 direction_out = self.beam_r_direction(i_self,t)
             else:
-                end = self.beam_r_start(i_self,t)
+                end = self.beam_r_start(i_self,t-L_r)
                 #coor_end = self.beam_r_coor(i_self,t)
                 coor_end = self.tele_r_coor(i_self,t)
-                direction_out = self.beam_r_direction(i_self,t)
+                direction_out = self.beam_r_direction(i_self,t+L_s)
         # ksi is in receiiving telescope frame so adapt ksi in beam send frame
         [ksix,ksiy]=ksi
 
