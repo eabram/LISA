@@ -12,8 +12,6 @@ class WFE():
             globals()[k] = para[k]
             setattr(self,k,para[k])
 
-        global w0
-        w0 = w0_laser
         self.data = kwargs.pop('data',False)
         adjust={}
         adjust['select']= kwargs.pop('orbit','')
@@ -122,7 +120,9 @@ class WFE():
         
         if init==True:
             self.aim0 = aim
+            self.aim = aim
         else:
+            del self.aim
             self.aim = aim
             self.do_mean_angin()
             self.piston_val()
@@ -144,13 +144,13 @@ class WFE():
         self.Nbinsy = len(self.ylist)
 
     def w(self,z):
-        zR = np.pi*(w0**2)/labda
+        zR = np.pi*(self.w0_laser**2)/labda
 
-        return w0*((1+((z/zR)**2))**0.5)
+        return self.w0_laser*((1+((z/zR)**2))**0.5)
 
     def R(self,z,guess=False):
         if z!=np.nan:
-            zR = np.pi*(w0**2)/labda
+            zR = np.pi*(self.w0_laser**2)/labda
 
             if guess==False:
                 return abs(z*(1+((zR/z)**2)))
@@ -386,6 +386,8 @@ class WFE():
             target_pos = val['target_pos']
             beam_send_coor = val['coor_start']
             tele_rec_coor = val['coor_end']
+            target_direction = val['target_direction']
+
 
             np.dot(n_beam,n_tele)
 #            if side=='l':
@@ -542,7 +544,7 @@ class WFE():
             retval['angy_tot'] = angy_tot
             retval['angy_tilt'] = angy
             retval['angy_off'] = angyoff
-            retval['zoff_0']=zoff_o
+            retval['zoff_0']=zoff_0
             retval['z_extra']=z_extra
             r = ((yoff_0**2)+(xoff_0**2))**0.5
             retval['r']=r
@@ -576,28 +578,52 @@ class WFE():
             power_angle = [angx_tot,angy_tot]
             return [xoff_0,yoff_0,zoff_0],zmn,thmn
 
-    def calc_piston_val(self,i,t,side,ret='piston'):
-        piston = lambda x,y: self.zern_aim(i,t,side=side,ret=ret,ksi=[x,y])
-        if self.speed_on==2:
-            xlist=[0]
-            ylist=[0]
+    def calc_piston_val(self,i,t,side,ret=['piston'],size='small'):
+        if size == 'big' or ret=='all_val':
+            calc0 = lambda x,y: self.zern_aim(i,t,side=side,ret='all_val',ksi=[x,y])
+            calc={}
+            meas = calc0(0,0).keys()
+            for k in meas:
+                calc[k] = lambda x,y: calc0(x,y)[k]
+            size='big'
         else:
-            xlist=False
-            ylist=False
-        
-        try:
-            piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
-            N_flat = PAA_LISA.utils.flatten(piston_ttl)
-            N = len(N_flat) - np.sum(np.isnan(N_flat))
-             
+            calc={}
+            meas = ret
+            for m in meas:
+                calc[m] = lambda x,y: self.zern_aim(i,t,side=side,ret=m,ksi=[x,y])
+            size='small'
+
+
+
+        ret={}
+        for m in meas:
+            if size=='small':
+                piston = calc[m]
+            elif size=='big':
+                piston  = lambda x,y: calc0(x,y)[m]
+
+            if self.speed_on==2:
+                xlist=[0]
+                ylist=[0]
+            else:
+                xlist=False
+                ylist=False
+            
             try:
-                return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
-            except RuntimeWarning:
-                print(piston(0,0))
-                return np.nan,np.nan
-        except ValueError,e:
-            if str(e)=='setting an array element with a sequence.':
-                return piston(0,0),'vec'
+                piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
+                N_flat = PAA_LISA.utils.flatten(piston_ttl)
+                N = len(N_flat) - np.sum(np.isnan(N_flat))
+                 
+                try:
+                    ret[m] = np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
+                except RuntimeWarning:
+                    print(piston(0,0))
+                    ret[m] = np.nan,np.nan
+            except ValueError,e:
+                if str(e)=='setting an array element with a sequence.':
+                    ret[m] =  piston(0,0),'vec'
+
+        return ret
 
 
     def piston_val(self):

@@ -30,7 +30,7 @@ def make_t_calc(wfe,t0=False,tend=False,dt=False):
     return t_plot
 
 
-def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
+def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1]):
     t_vec = make_t_calc(wfe,dt=dt)
     if type(SC)==int:
         SC = [SC]
@@ -40,36 +40,78 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
     len_short=False
     if type(meas)==str:
         meas = [meas]
-        len_short=True
+        if meas[0]!='all_val':
+            len_short=True
+
+    ret={}
+    ret['mean']={}
+    ret['var']={}
+    for i in SC:
+        ret['mean'][str(i)]={}
+        ret['var'][str(i)]={}
+        for s in side:
+            mean={}
+            var={}
+            calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big')
+
+            for t in t_vec[lim[0]:lim[-1]]:
+                calc = calc_all(t)
+                for m in calc.keys():
+                #calc = wfe.calc_piston_val(i,t,s,ret=m)
+                    try:
+                        mean[m]
+                    except KeyError:
+                        mean[m] = []
+                        var[m] = []
+                        
+                    if calc[m][-1]=='vec':
+                        mean[m].append([t,calc[m][0]])
+                        var[m].append([t,np.nan])
+                    else:
+                        mean[m].append([t,calc[m][0]])
+                        var[m].append([t,calc[m][1]])
+
+            ret['mean'][str(i)][s] = mean
+            ret['var'][str(i)][s] = var
+
+    ret_sort={}
+    for meanvar in ret.keys():
+        for SC in ret[meanvar].keys():
+            for s in ret[meanvar][SC].keys():
+                for m in ret[meanvar][SC][s].keys():
+                    try:
+                        ret_sort[m]
+                    except KeyError:
+                        ret_sort[m]={}
+                        ret_sort[m]['mean']={}
+                        ret_sort[m]['var']={}
+
+                    try:
+                        ret_sort[m][meanvar][SC]
+                    except KeyError:
+                        ret_sort[m][meanvar][SC]={}
+
+                    try:
+                        ret_sort[m][meanvar][SC][s]
+                    except KeyError:
+                        ret_sort[m][meanvar][SC][s]={}
+
+                    ret_sort[m][meanvar][SC][s] = ret[meanvar][SC][s][m]
+
+            #ret['mean'][str(i)][s]=mean
+            #ret['var'][str(i)][s]=var
 
 
     ret_all={}
+    if meas[0]=='all_val':
+        meas = calc.keys()
+
     for m in meas:
         title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
         iteration = 'Iteration:: '+ str(wfe.iteration)
         measurement = 'Measurement:: '+m
 
-        ret={}
-        ret['mean']={}
-        ret['var']={}
-        for i in SC:
-            ret['mean'][str(i)]={}
-            ret['var'][str(i)]={}
-            for s in side:
-                mean=[]
-                var=[]
-                for t in t_vec:
-                    calc = wfe.calc_piston_val(i,t,s,ret=m)
-                    if calc[-1]=='vec':
-                        mean.append([t,calc[0]])
-                        var.append([t,np.nan])
-                    else:
-                        mean.append([t,calc[0]])
-                        var.append([t,calc[1]])
-                ret['mean'][str(i)][s]=mean
-                ret['var'][str(i)][s]=var
-        
-        ret_all[m] = title, iteration, measurement, ret
+        ret_all[m] = title, iteration, measurement, ret_sort[m]
 
     if len_short==True:
         return ret_all[meas[0]]

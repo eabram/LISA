@@ -527,7 +527,7 @@ class AIM():
         ksiy_vec = coor_end[1]*ksiy
         end = end+ksix_vec+ksiy_vec
         target_pos = LA.matmul(coor_start,end-start)
-        #target_direction = LA.matmul(coor_start,direction)
+        target_direction = LA.matmul(coor_start,direction_in)
         
 
         ret={}
@@ -536,7 +536,7 @@ class AIM():
         ret['beam_out'] = direction_out
         ret['beam_in'] = direction_in
         ret['target_pos'] = target_pos
-        #ret['target_direction'] = target_direction
+        ret['target_direction'] = target_direction
         ret['coor_start'] = coor_start
         ret['coor_end'] = coor_end
         ret['L_s'] = L_s

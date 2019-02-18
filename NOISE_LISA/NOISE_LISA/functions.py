@@ -123,6 +123,13 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
     title=date+'_'+time+'_'+title+'.txt'
     writefile = open(direct+'/'+title,'w')
     
+    if type(inp)==dict:
+        inp_new = []
+        for k in inp.keys():
+            inp_new.append(inp[k])
+        inp = inp_new
+        del inp_new
+
     for m in inp:
         if type(m)==list:
             if len(m)==3 and 'Figure' in str(type(m[0])):
