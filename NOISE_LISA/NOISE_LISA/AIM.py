@@ -101,7 +101,7 @@ class AIM():
             i_calc=i_right
             s_calc='l'
 
-        ret =  self.wfe.aim0.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
+        ret =  self.wfe.aim_old.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
         [z,y,x] = LA.matmul(ret['coor_end'],ret['beam_in'])
         
         angx = np.sign(x)*abs(np.arctan(x/z))
@@ -115,11 +115,11 @@ class AIM():
         # Obtaines functions for optimal telescope pointing vector
         delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[2]
         delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[2]
-        ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[0]
-        ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[0]
+        ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[0]*0.5 #...
+        ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[0]*0.5
  
-        self.tele_ang_l_fc = lambda i,t: self.wfe.aim0.tele_l_ang(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
-        self.tele_ang_r_fc = lambda i,t: self.wfe.aim0.tele_r_ang(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
+        self.tele_ang_l_fc = lambda i,t: self.wfe.aim_old.tele_l_ang(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
+        self.tele_ang_r_fc = lambda i,t: self.wfe.aim_old.tele_r_ang(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
 
         #self.tele_ang_l_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='l')
         #self.tele_ang_r_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='r')
@@ -202,6 +202,19 @@ class AIM():
             self.tele_l_ang = lambda i,t: self.add_jitter(tele_l,i,t,1e-6,1e10,dt=0.1)
             self.tele_r_ang = lambda i,t: self.add_jitter(tele_r,i,t,1e-6,1e10,dt=0.1)
         else:
+            #try:
+            #    tele_l_ang_old = self.tele_l_ang
+            #    tele_r_ang_old = self.tele_r_ang
+            #    self.tele_l_ang = lambda i,t: (tele_l_ang_old(i,t)+tele_l(i,t))/np.float64(2.0)
+            #    self.tele_r_ang = lambda i,t: (tele_r_ang_old(i,t)+tele_r(i,t))/np.float64(2.0)
+            #except AttributeError:
+            #        self.tele_l_ang = tele_l
+            #        self.tele_r_ang = tele_r
+
+
+            #self.tele_l_ang = lambda i,t: (tele_l(i,t) - self.tele_l_ang(i,t))*0.5 +self.tele_l_ang(i,t)
+            #self.tele_r_ang = lambda i,t: (tele_r(i,t) - self.tele_r_ang(i,t))*0.5 +self.tele_r_ang(i,t)
+            
             self.tele_l_ang = tele_l
             self.tele_r_ang = tele_r
         
@@ -384,8 +397,8 @@ class AIM():
         ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[1]
         ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[1]
 
-        self.PAAM_ang_l_fc = lambda i,t: self.wfe.aim0.beam_l_ang(i,t)+ang_PAAM_extra_l(i,t+delay_l(i,t))
-        self.PAAM_ang_r_fc = lambda i,t: self.wfe.aim0.beam_r_ang(i,t)+ang_PAAM_extra_r(i,t+delay_r(i,t))
+        self.PAAM_ang_l_fc = lambda i,t: self.wfe.aim_old.beam_l_ang(i,t)+ang_PAAM_extra_l(i,t+delay_l(i,t))
+        self.PAAM_ang_r_fc = lambda i,t: self.wfe.aim_old.beam_r_ang(i,t)+ang_PAAM_extra_r(i,t+delay_r(i,t))
 
 
     def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=1,mode='overdamped',PAAM_ang_extra=False):

@@ -86,6 +86,19 @@ class WFE():
         self.status_init_pointing=False
 
     def init_pointing(self):
+        try:
+            del self.aim
+        except AttributeError:
+            pass
+        try:
+            del self.aim0
+        except AttributeError:
+            pass
+        try:
+            del self.aim_old
+        except AttributeError:
+            pass
+
         self.get_pointing(PAAM_method='no control',tele_method='no control',iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=True)
         self.status_init_pointing=True
 
@@ -120,8 +133,19 @@ class WFE():
         
         if init==True:
             self.aim0 = aim
+            try:
+                del self.aim0
+            except AttributeError:
+                pass
+            self.aim0 = aim
+            self.aim_old = aim
             self.aim = aim
         else:
+            try:
+                del self.aim_old
+            except AttributeError:
+                pass
+            self.aim_old = self.aim
             del self.aim
             self.aim = aim
             self.do_mean_angin()
