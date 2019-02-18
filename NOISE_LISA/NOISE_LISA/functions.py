@@ -122,6 +122,9 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
 
     title=date+'_'+time+'_'+title+'.txt'
     writefile = open(direct+'/'+title,'w')
+
+    #if len(inp)==1:
+    #    inp=[inp]
     
     if type(inp)==dict:
         inp_new = []
@@ -129,6 +132,8 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
             inp_new.append(inp[k])
         inp = inp_new
         del inp_new
+    elif type(inp)!=list:
+        inp=[inp]
 
     for m in inp:
         if type(m)==list:
