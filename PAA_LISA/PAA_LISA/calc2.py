@@ -5,7 +5,11 @@ day2sec=year2sec/365.25
 c=300000000
 
 class PAA():
-    def __init__(self,**kwargs):
+    def __init__(self,para,**kwargs):
+        for k in para:
+            globals()[k] = para[k]
+            setattr(self,k,para[k])
+
         self.home = kwargs.pop('home',os.getcwd())
         self.filename = kwargs.pop('filename','')
         self.directory_imp = kwargs.pop('directory_imp','')
@@ -55,12 +59,10 @@ class PAA():
         self.calc_method = kwargs.pop('calc_method','Waluschka')
         print(self.calc_method)
         self.abb = kwargs.pop('abberation',False)
-        import parameters
-        parameters.do_obtain_var(parameters.do_para(),output=self)
     
     
     def PAA_func(self):
-        import functions as utils
+        import PAA_LISA.utils as utils
         print('')
         print('Importing Orbit')
         tic=time.clock()
@@ -146,6 +148,11 @@ class PAA():
         self.ang_breathing_din = lambda i, time: LA.angle(self.v_l_func_tot(i,time),self.v_r_func_tot(i,time))
         self.ang_breathing_stat = lambda i, time: LA.angle(self.v_l_stat_func_tot(i,time),self.v_r_stat_func_tot(i,time))
         
+        self.ang_in_l = lambda i,t: LA.ang_in(self.v_l_func_tot(i,t),self.n_func(i,t),self.r_func(i,t))
+        self.ang_in_r = lambda i,t: LA.ang_in(self.v_r_func_tot(i,t),self.n_func(i,t),self.r_func(i,t))
+        self.ang_out_l = lambda i,t: LA.ang_out(self.v_l_func_tot(i,t),self.n_func(i,t))
+        self.ang_out_r = lambda i,t: LA.ang_out(self.v_r_func_tot(i,t),self.n_func(i,t))
+
         return self #...adjust
 
 

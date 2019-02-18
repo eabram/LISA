@@ -6,7 +6,7 @@ from fractions import Fraction
 import math
 import datetime
 from scipy.interpolate import interp1d
-from scipy.interpolate import RegularGridInterpolator
+#from scipy.interpolate import RegularGridInterpolator
 import scipy.optimize
 from sympy import *
 
@@ -206,15 +206,24 @@ class la():
 
         return [ang_x,ang_y]
 
-    def flatten(self,y):
+    def flatten(OBJ,y):
         ynew=[]
-        for i in range(0,len(y)):
-            try:
-                for j in range(0,len(y[i])):
-                    ynew.append(y[i][j])
-            except TypeError:
-                ynew.append(y[i])
+        check=True
+        try:
+            len(y)
+        except TypeError:
+            ynew = [y]
+            check=False
+            pass
         
+        if check==True:
+            for i in range(0,len(y)):
+                try:
+                    for j in range(0,len(y[i])):
+                        ynew.append(y[i][j])
+                except TypeError:
+                    ynew.append(y[i])
+            
         return ynew
 
 
@@ -373,9 +382,10 @@ def func_over_sc(func_tot):
 
     return f
 
-def send_func(OBJ,i,calc_method='Waluschka'):
-    print('Selected calculation method is: '+ calc_method)
-    print('')
+def send_func(OBJ,i,calc_method='Waluschka',print_on=False):
+    if print_on==True:
+        print('Selected calculation method is: '+ calc_method)
+        print('')
 
     [i_OBJ,i_left,i_right] = i_slr(i)
 
@@ -483,7 +493,7 @@ def velocity_abs_calc(OBJ,i_select,t,hstep):
 
 
 def velocity_abs(OBJ,hstep=1.0):
-    hstep = np.float64(hstep)
+    hstep = np.float128(hstep)
 
     #v_ret=[]
     #for i_select in range(1,4):
@@ -533,7 +543,7 @@ def velocity_calc(OBJ,i,time,hstep,side,rs):
 
 def velocity_func(OBJ,hstep=1.0):
     LA=la()
-    hstep = np.float64(hstep)
+    hstep = np.float128(hstep)
     OBJ.v_l= lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',0)
     OBJ.v_in_l = lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',1)
     OBJ.v_out_l = lambda i,time: velocity_calc(OBJ,i,time,hstep,'l',2)

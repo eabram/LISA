@@ -30,7 +30,7 @@ input_param = {
         'num_back': 0,
         'dir_orbits': '/home/ester/git/synthlisa/orbits/', # Folder with orbit files
         'length_calc': 40, # Length of number of imported datapoints of orbit files. 'all' is also possible
-        'dir_extr': 'zzzWaluschka_no_abberation', # This will be added to the folder name of the figures
+        'dir_extr': 'Waluschka_no_abberation', # This will be added to the folder name of the figures
         'timeunit':'Default', # The timeunit of the plots (['minutes'],['days']['years'])
         'LISA_opt':True, # If a LISA object from syntheticLISA will be used for further calculations (not sure if it works properly if this False)
         'arm_influence': True, # Set True to consider the travel time of the photons when calculating the nominal armlengths
@@ -73,10 +73,3 @@ phase = wfe.u_rz_aperture(wfe.zmn,wfe.thmn,i,t,side=side,mode='phase')
 # TTL (incomplete)
 NOISE_LISA.calc_values.ttl(wfe,PAAM_control_method='full control')
 NOISE_LISA.plot_func(wfe).plot_ttl(1,side)
-
-
-
-
-
-
-

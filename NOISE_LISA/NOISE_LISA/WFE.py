@@ -1,15 +1,31 @@
 from imports import *
 from functions import *
-from parameters import *
-import PAA_LISA
-import NOISE_LISA
+import parameters 
+from .AIM import AIM
+#import PAA_LISA
+#import NOISE_LISA
 
-class WFE():
+class WFE(): 
     def __init__(self,**kwargs):
-        global labda, w0, E0, k, D, LA,L_tele
-        
-        
-        self.Ndata = kwargs.pop('Ndata',False)
+        para = NOISE_LISA.parameters.__dict__
+        for k in para:
+            globals()[k] = para[k]
+            setattr(self,k,para[k])
+
+        global w0
+        w0 = w0_laser
+        self.data = kwargs.pop('data',False)
+        adjust={}
+        adjust['select']= kwargs.pop('orbit','')
+        adjust['dir_orbits']=kwargs.pop('dir_orbits',os.getcwd())
+        adjust['home']=kwargs.pop('home',os.getcwd())
+        adjust['length_calc']= kwargs.pop('duration',40)
+        adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
+
+        if self.data==False:
+            self.get_PAA_LISA(para,adjust=adjust)
+
+
         self.tele_control = kwargs.pop('tele_control','no control')
         self.PAAM_control_method = kwargs.pop('PAAM_control','SS')
         self.side = kwargs.pop('side','l')
@@ -23,30 +39,104 @@ class WFE():
         self.thmn_func = {}
         self.zmn={}
         self.thmn = {}
-        if self.Ndata==False:
-            print('Please input NOISE_LISA object')
+        self.t_all = self.data.t_all
+
+        if self.data==False:
+            print('Please input PAA_LISA object')
         else:
-            labda = self.Ndata.data.labda
-            w0 = self.Ndata.data.w0
-            E0 = 1 #...adjust
-            k = (2*np.pi)/labda
-            D = self.Ndata.data.D
             LA = PAA_LISA.utils.la()
             self.pupil()
             self.scale=1
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=True): #...add more variables
-        aim = NOISE_LISA.AIM(self,offset_control=offset_control)
-        aim.tele_aim(method=tele_method)
-        aim.PAAM_control(method=PAAM_method)
+        self.t_calc = NOISE_LISA.calc_values.make_t_calc(self)
 
-        self.aim = aim
+    def get_PAA_LISA(self,para,adjust={}):
+        options = { 
+        'calc_method': 'Waluschka',
+        'plot_on':False, #If plots will be made
+        'dir_savefig': os.getcwd(), # The directory where the figures will be saved. If False, it will be in the current working directory
+        'noise_check':False,
+        'home':'/home/ester/git/synthlisa/', # Home directory
+        'directory_imp': False,
+        'num_back': 0,
+        'dir_orbits': '/home/ester/git/synthlisa/orbits/', # Folder with orbit files
+        'length_calc': 'all', # Length of number of imported datapoints of orbit files. 'all' is also possible
+        'dir_extr': 'zzzWaluschka_no_abberation', # This will be added to the folder name of the figures
+        'timeunit':'Default', # The timeunit of the plots (['minutes'],['days']['years'])
+        'LISA_opt':True, # If a LISA object from syntheticLISA will be used for further calculations (not sure if it works properly if this False)
+        'arm_influence': True, # Set True to consider the travel time of the photons when calculating the nominal armlengths
+        'tstep':False,
+        'delay':True, #'Not ahead' or False
+        'method':'fsolve', # Method used to solve the equation for the photon traveling time
+        'valorfunc':'Function', #
+        'select':'Hallion', # Select which orbit files will be imported ('all' is all)
+        'test_calc':False,
+        'abberation':False,
+        'delay': True
+        }
 
+        for k in adjust.keys():
+            if k in options.keys():
+                options[k] = adjust[k]
+
+        data_all = PAA_LISA.runfile.do_run(options,para)
+
+        for k in range(0,len(data_all)/2):
+            data = data_all[str(k+1)]
+        self.t_vec = data.t_all
+        self.data = data
+        self.status_init_pointing=False
+
+    def init_pointing(self):
+        self.get_pointing(PAAM_method='no control',tele_method='no control',iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=True)
+        self.status_init_pointing=True
+
+        return 0
+
+
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=True,init=False): #...add more variables
+        
+        if tele_ang_extra==True:
+            tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
+        if PAAM_ang_extra==True:
+            PAAM_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'PAAM')
+
+
+        self.iteration=iteration 
+        if tele_method==False:
+            tele_method = self.tele_control
+        else:
+            self.tele_control = tele_method
+        
+        if PAAM_method==False:
+            PAAM_method = self.PAAM_control_method
+        else:
+            self.PAAM_control_method = PAAM_method
+
+        aim = AIM(self,offset_control=offset_control)
+
+        aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
+        aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
+        #self.tele_control = aim.tele_method
+        #self.PAAM_control_method = aim.PAAM_method
+        
+        if init==True:
+            self.aim0 = aim
+        else:
+            self.aim = aim
+            self.do_mean_angin()
+            self.piston_val()
 
     # Beam properties equations
 
-    def pupil(self,D_calc = D,Nbins=10):
-        self.xlist = np.linspace(-D_calc*0.5,D_calc*0.5,Nbins)
+    def pupil(self,Nbins=2,**kwargs):
+        D_calc=kwargs.pop('D',self.D)
+
+
+        if D_calc=='Default':
+            D = self.para['D'] 
+        xlist = np.linspace(-D_calc*0.5,D_calc*0.5,Nbins+1)
+        self.xlist = xlist[0:-1]+0.5*(xlist[1]-xlist[0])
         self.ylist = self.xlist
         self.Deltax = self.xlist[1]-self.xlist[0]
         self.Deltay = self.ylist[1]-self.ylist[0]
@@ -59,23 +149,54 @@ class WFE():
         return w0*((1+((z/zR)**2))**0.5)
 
     def R(self,z,guess=False):
-        zR = np.pi*(w0**2)/labda
+        if z!=np.nan:
+            zR = np.pi*(w0**2)/labda
 
-        if guess==False:
-            return abs(z*(1+((zR/z)**2)))
+            if guess==False:
+                return abs(z*(1+((zR/z)**2)))
 
-        elif guess==True:
-            return z
-
-    def z_solve(self,x,y,z,calc_R=False):
-        
-        R_new = lambda z_tot: self.R(z_tot,guess=False)
-        f_solve = lambda z_tot: (R_new(z_tot) - (R_new(z_tot)**2 - (x**2+y**2))**0.5) - (z_tot-z)
-        z_sol = scipy.optimize.brentq(f_solve,0.5*z,z*1.5)
-        if calc_R==True:
-            return R(z_sol)
+            elif guess==True:
+                return z
         else:
-            return z_sol
+            return np.nan
+
+    def z_solve(self,x,y,z,calc_R=False,ret='piston',R_guess=True):
+        try:
+            if z!=np.nan:
+                x = np.float64(x)
+                y = np.float64(y)
+                z = np.float64(z)
+                #lim = (x**2+y**2) 
+                #R_new = lambda dz: self.R(z+dz,guess=False)
+                f_solve = lambda dz: (self.R(z+dz,guess=R_guess) - (self.R(z+dz,guess=R_guess)**2 - (x**2+y**2))**0.5) - dz
+                f_solve_2 = lambda dz: (z- (((z+dz)**2 - x**2 -y**2 )**0.5))
+                dz_sol = scipy.optimize.brentq(f_solve,-0.5*z,0.5*z,xtol=1e-64)
+                #dz_sol_3 = scipy.optimize.brentq(f_solve_2,-lim,lim,xtol=1e-64)
+                #dz_sol_2 = scipy.optimize.fsolve(f_solve,0,xtol=1e-128)
+            else:
+                dz_sol=np.nan
+                dz_sol_2=np.nan
+                dz_sol_3=np.nan
+                raise ValueError
+            
+            if calc_R==True:
+                return self.R(z+dz_sol,guess=R_guess)
+            else:
+                if ret=='piston':
+                    return z+dz_sol
+                elif ret=='all':
+                    #print(dz_sol,1e-64)
+                    #print(x,y)
+                    #print(dz_sol,dz_sol_2,dz_sol_3)
+                    #print(x,y,z)
+                    return [z+dz_sol,dz_sol]
+            
+        except RuntimeError:
+            print(x,y,z)
+            if ret=='piston':
+                return np.nan
+            elif ret=='all':
+                return [np.nan,np.nan]
 
 
 # WFE send
@@ -90,12 +211,12 @@ class WFE():
                 ylist =self.ylist
 
         if side=='l':
-            angy = self.aim.PAAM_l_ang(i,t)
+            angy = self.aim.beam_l_ang(i,t)
         elif side=='r':
-            angy = self.aim.PAAM_r_ang(i,t)
+            angy = self.aim.beam_r_ang(i,t)
         angx = 0 #...to do: Add jitter
        
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         function = lambda x,y: 2*np.pi*((x*np.sin(angx)+y*np.sin(angy))/labda)
 
         w = self.aperture(xlist,ylist,function,dType = np.float64)
@@ -104,14 +225,14 @@ class WFE():
 
     def w0(self,i,t,side,ksi):
         if side=='l':
-            angy = self.aim.PAAM_l_ang(i,t)
+            angy = self.aim.beam_l_ang(i,t)
         elif side == 'r':
-            angy = self.aim.PAAM_r_ang(i,t)
+            angy = self.aim.beam_r_ang(i,t)
         angx=0#...add jitter
 
         [x,y] = ksi
         
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         w_error = 2*np.pi*((x*np.sin(angx)+y*np.sin(angy))/labda)
 
         return w_error
@@ -122,17 +243,21 @@ class WFE():
 
         return np.exp(-((x**2+y**2)/(w**2)))
 
-# WFE receive
+# WFE receive # Used
     
     def u_rz_calc(self,r,z,SC,t,side,xlist=False,ylist=False):
         if xlist==False:
             xlist = self.xlist
         if ylist==False:
             ylist = self.ylist
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         k = (2*np.pi)/labda
         
-        dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
+        if len(xlist)==1 and len(ylist)==1:
+            dksi = (self.D**2)*(np.pi/4.0)
+        else:
+            dksi = (xlist[1]-xlist[0])*(ylist[1]-ylist[0])
+
         ret=0
         for i in range(0,len(xlist)):
             for j in range(0,len(ylist)):
@@ -158,28 +283,29 @@ class WFE():
 
         u = self.u_rz_calc(r,z,i,t,side,xlist=xlist,ylist=ylist)
         w = self.w(z) #...check if proper z is used (z0)
-        wac = (self.Ndata.data.D/2)/w
-        norm = ((np.pi*((2*np.pi)/self.Ndata.data.labda)*w**2*(1-np.exp(-1/(wac**2))))/(2*np.pi*z))**2
+        wac = (self.data.D/2)/w
+        norm = ((np.pi*((2*np.pi)/self.data.labda)*w**2*(1-np.exp(-1/(wac**2))))/(2*np.pi*z))**2
         I = (abs(u)**2)/norm
         phase = np.angle(u)
 
         return u,I,phase
 
     def u_rz_aperture(self,zmn,thmn,i,t,side='l',xlist=False,ylist=False,mode='power'):
-        if self.speed_on>=1: #Only canculates center (works correctly for only piston and tilt
-            xlist = np.array([0])
-            ylist = np.array([0])
-         
-        if mode=='power':
-            function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[1]
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
-        elif mode=='u':
-            function = lambda x,y: abs(self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[0])
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
-        elif mode=='phase':
-            function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[2]
-            ps = self.aperture(xlist,ylist,function,dType=np.float64)
+        if zmn==np.nan or thmn==np.nan:
+            function = lambda x,y: np.nan
+        else:
+            if self.speed_on>=1: #Only canculates center (works correctly for only piston and tilt
+                xlist = np.array([0])
+                ylist = np.array([0])
+             
+            if mode=='power':
+                function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[1]
+            elif mode=='u':
+                function = lambda x,y: abs(self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[0])
+            elif mode=='phase':
+                function = lambda x,y: self.u_rz(zmn,thmn,np.array([x,y]),i,t,side=side,xlist=xlist,ylist=ylist)[2]
 
+        ps = self.aperture(xlist,ylist,function,dType=np.float64)
         
         
         return ps
@@ -197,400 +323,303 @@ class WFE():
                 ylist = self.ylist
 
         Nbins = len(xlist)
-        D = max(xlist)
+        if len(xlist)!=0:
+            step = xlist[1]-xlist[0]
+        else:
+            step = self.D
         ps = np.empty((Nbins,Nbins),dtype=dType)
         for i in range(0,len(xlist)):
             for j in range(0,len(ylist)):
                 x = xlist[i]
                 y = ylist[j]
-                r = (x**2+y**2)**0.5
-                if r<=D:
+                #r = (x**2+y**2)**0.5
+                if x**2+y**2<=0.25*(self.D**2):
                     ps[i,j] = function(x,y)
                 else:
                     ps[i,j] = np.nan
         
         return ps
 
-    def TTL_rec(self,i,t,side='default'):
-        if self.simple == True:
-            print('Simple mode is on, only calculating for center of receiving telescope')
-            TTL = self.phi_gauss(i,t,0,0,side=side)[1]
-        else:
-            print('Simple mode is off, calculating over whole aperture receiving telescope')
-            TTL = self.aperture(self.xlist,self.ylist, lambda dx,dy: self.phi_gauss(i,t,dx,dy,side=side)[1])
-
-        return TTL
-
-    
-
-# Jitter
-    def jitter_tele(self,t_end,psd_in=False,psd_out=False,psd_r=False,psd_in_ang=False,psd_out_ang=False,fmin=0.0001, fmax=0.1,N=4096):
-        jitter_in = self.Ndata.Noise_time(fmin,fmax,N,psd_in,t_end,ret='function')
-        jitter_out = self.Ndata.Noise_time(fmin,fmax,N,psd_out,t_end,ret='function')
-        jitter_r = self.Ndata.Noise_time(fmin,fmax,N,psd_r,t_end,ret='function')
-        jitter_in_ang = self.Ndata.Noise_time(fmin,fmax,N,psd_in_ang,t_end,ret='function')
-        jitter_out_ang = self.Ndata.Noise_time(fmin,fmax,N,psd_out_ang,t_end,ret='function')
-
-
-        self.jitter=[jitter_in,jitter_out,jitter_r,jitter_in_ang,jitter_out_ang]
-
-        return 0
-    
-    def do_jitter_tele(self,psd_in=False,psd_out=False,psd_r=False,psd_in_ang=False,psd_out_ang=False,t_end='all',fmin=0.0001,fmax=0.1,N=4096):
-
-        if t_end=='all':
-            t_end = self.Ndata.t_all[-1]
-
-        jitter_l=[]
-        jitter_r=[]
-        for i in range(1,4):
-            self.jitter_tele(t_end,psd_in=psd_in,psd_out=psd_out,psd_r=psd_r,psd_in_ang=psd_in_ang,psd_out_ang=psd_out_ang,fmin=fmin,fmax=fmax,N=N)
-            jitter_l.append(self.jitter)
-            self.jitter_tele(t_end,psd_in=psd_in,psd_out=psd_out,psd_r=psd_r,psd_in_ang=psd_in_ang,psd_out_ang=psd_out_ang,fmin=fmin,fmax=fmax,N=N)
-            jitter_r.append(self.jitter)
-        
-        self.jitter_tele_done = [jitter_l,jitter_r]
-
-        # Redo telescope pointing vectors
-        self.Ndata.tele_l = lambda i,t: self.Ndata.tele_control(i,t,option='no control',side='l',jitter = self.jitter_tele_done[0])
-        self.Ndata.tele_r = lambda i,t: self.Ndata.tele_control(i,t,option='no control',side='r',jitter = self.jitter_tele_done[1])
-        self.Ndata.tele_l_fc = lambda i,t: self.Ndata.tele_control(i,t,option='full control',side='l',jitter = self.jitter_tele_done[0])
-        self.Ndata.tele_r_fc = lambda i,t: self.Ndata.tele_control(i,t,option='full control',side='r',jitter = self.jitter_tele_done[1])
-
-
-        return 0
-
-### Sending wavefront
-
-    def Rmn_calc(self,m,n,rho,phi):
-        R=0
-        m_new = m
-        m = abs(m)
-        for k in range(0,int((n-m)/2)+1):
-            R = R+(((-1**k)*math.factorial(n-k))/(math.factorial(k)*math.factorial(int((n+m)/2)-k)*math.factorial(int((n+m)/2)-k)))*(rho**(n-2*k))
-        if m_new<0:
-            R = R*np.sin(m*phi)
-        else:
-            R = R*np.cos(m*phi)
-        
-        return R
-
-    def Cmn_calc(self,m,n,rho,phi,Cmn,thmn):
-        index = str(abs(m))+str(n)
-        #index_pos = str(abs(m))+str(n)
-        if index in Cmn.keys():
-            if n==1:
-                if m<0:
-                    ret = self.Rmn_calc(m,n,rho,phi)*abs(Cmn[index])*np.cos(thmn[index]) #y
-                elif m>=0:
-                    ret = self.Rmn_calc(m,n,rho,phi)*abs(Cmn[index])*np.sin(thmn[index]) #x
-            elif n==0:
-                ret=Cmn[index]
-            else:
-                ret = self.Rmn_calc(m,n,rho,phi)*abs(Cmn[index])*np.exp(1j*thmn[index]*np.sign(m))
-                
-        else:
-            ret=0
-
-        return ret
-
-    def zern(self,m,n,zmn=False,thmn=False,offset=[0,0],mode='ttl'):
-        if zmn==False:
-            zmn = self.zmn
-            thmn = self.thmn
-        ps = np.empty((self.Nbinsx,self.Nbinsy),dtype=np.float64)
-        for i in range(0,len(self.xlist)):
-            for j in range(0,len(self.ylist)):
-                x = self.xlist[i]
-                y = self.ylist[j]
-                rho = (x**2+y**2)**0.5
-                if x>0:
-                    if y>0:
-                        phi=np.arctan(abs(y)/abs(x))
-                    elif y<0:
-                        phi = -np.arctan(abs(y)/abs(x))
-                    elif y==0:
-                        phi = 0
-                elif x<0:
-                    if y>0:
-                        phi=np.pi - np.arctan(abs(y)/abs(x))
-                    elif y<0:
-                        phi=np.pi + np.arctan(abs(y)/abs(x))
-                    elif y==0:
-                        phi = np.pi
-                
-                elif x==0:
-                    phi = np.pi*0.5*np.sign(y)
-
-                if rho<= self.xlist[-1]:
-                    if mode =='ttl':
-                        ps[i,j] = self.Cmn_calc(m,n,rho,phi,zmn,thmn)
-                    elif mode == 'phase':
-                        a = self.Cmn_calc(m,n,rho,phi,zmn,thmn)%self.Ndata.data.labda
-                        ps[i,j] = 2*np.pi*(a/self.Ndata.data.labda)
-                else:
-                    ps[i,j] = np.nan
-        return ps
-
-    def tilt_calc(self,i,t,side=False):
-        if side==False:
-            side = self.side
-        #...Check for angle conventions (directions)
-        if side=='l':
-            ksix = 0#self.tele_SS_l(i,t) # ...replace with misalignment
-            ksiy = self.Ndata.data.PAA_func['l_out'](i,t)
-        elif side =='r':
-            ksix = 0#self.tele_SS_r(i,t) # replace with misallignment
-            ksiy = self.Ndata.data.PAA_func['r_out'](i,t)
-
-        if ksix==0:
-            thmn = np.pi*0.5
-        else:
-            thmn = np.arctan(ksix/ksiy)
-
-        zmn = np.linalg.norm((ksix**2+ksiy**2)**0.5)
-
-        return [zmn,thmn]
-
-    def get_tilt(self,side=False):
-        if side==False:
-            side = self.side
-        #... add Z00 with laser noise
-        self.zmn_func['11'] = lambda i,t: self.tilt_calc(i,t,side=side)[0]
-        self.thmn_func['11'] = lambda i,t: self.tilt_calc(i,t,side=side)[1]
-
-
-    
-    def get_zmn_thmn(self,i,t):
-        for keys in self.zmn_func.keys():
-            self.zmn[keys] = self.zmn_func[keys](i,t)
-            self.thmn[keys] = self.thmn_func[keys](i,t)
-
-    def phasefront_send(self,i,t,nmax=4,side = 'l'):
-        self.get_tilt(side=side)
-        self.get_zmn_thmn(i,t)
-        ps = np.empty((self.Nbinsx,self.Nbinsy),dtype=np.float64)
-        ps_list = {}
-        for n in range(0,nmax+1):
-            for m in range(-n,n+1):
-                index = str(m)+str(n)
-                ps_new = self.zern(m,n,self.zmn,self.thmn)
-                ps_list[index] = ps_new
-
-        keys = ps_list.keys()
-        ps_tot = ps_new*0
-        for ii in range(0,len(ps_list[keys[0]])):
-            for j in range(0,len(ps_list[keys[1]][ii])):
-                for k in keys:
-                    ps_tot[ii,j] = ps_tot[ii,j]+ps_list[k][ii,j]
-
-        self.ttl_s_tot = ps_tot
-        self.ttl_s_dict = ps_list
-
-        return 0
-
-
-    def do_ttl_send(self):
-
-        self.TTL_tele_send_l = lambda i,t: self.phasefront_send(i,t,side='l')
-        self.TTL_tele_send_r = lambda i,t: self.phasefront_send(i,t,side='r')
-        
-        self.tele_point_SS_l = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_l(i,t),self.Ndata.data.n_func(i,t),self.tele_SS_l(i,t)))
-        self.tele_point_SS_r = lambda i,t: LA.unit(LA.rotate(self.Ndata.tele_r(i,t),self.Ndata.data.n_func(i,t),self.tele_SS_r(i,t)))
-
-        return 0
-
-    #def TTL_zern_calc(self,i,t,side='l'):
-    #    [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
-    #        
-    #    if side=='l':
-    #        i_next = i_left
-    #        tdel = self.Ndata.data.L_rl_func_tot(i_self,t)
-    #        beam_send = self.beam_aim_r_vec(i_next,t-tdel)
-    #        tele_rec_coor = self.tele_aim_l_coor(i_self,t)
-    #    
-    #    if side=='r':
-    #        i_next = i_right
-    #        tdel = self.Ndata.data.L_rr_func_tot(i_self,t)
-    #        beam_send = self.beam_aim_l_vec(i_next,t-tdel)
-    #        tele_rec_coor = self.tele_aim_r_coor(i_self,t)
-    #    
-    #    [piston,dy,dx] = LA.matmul(-tele_rec_coor,beam_send)
-    #    angx = np.arctan(dx/piston)
-    #    angy = np.arctan(dy/piston)
-    #     
-    #    # Calculating tilt
-    #    thmn11 = np.arctan(angx/angy)
-    #    zmn11 = (angx**2 + angy**2)**0.5
-
-    #    # Calculating offset
-    #    pos_send = np.array(self.Ndata.data.LISA.putp(i_next,t-tdel))
-    #    pos_rec = np.array(self.Ndata.data.LISA.putp(i_self,t-tdel)) #... set on Waluschka)
-
-    #    tele_rel = LA.unit(tele_rec)*L_tele
-    #    O_tele = pos_rec - pos_send +tele_rel # ... Abram vs. Waluschka
-    #    tele_beam = np.dot(O_tele,LA.unit(beam))*LA.unit(beam)
-
-    #    tele_yoff = LA.outplane(O_tele - tele_beam,n)
-    #    
-    #    tele_xoff = np.linalg.norm(O_tele-tele_beam-tele_yoff)+djitter[0]
-    #    tele_yoff = np.linalg.norm(tele_yoff)+djitter[1]
-    #    tele_zoff = np.linalg.norm(tele_beam) - np.linalg.norm(beam)+djitter[2]
-
-
-    #    zmn={}
-
-    #    zmn['11'] = zmn11
-    #    thmn={}
-    #    thmn['11'] = thmn11
-    #    zxoff = tele_xoff*np.tan(angx)
-    #    zyoff = tele_yoff*np.tan(angy)
-    #    xoff = tele_xoff
-    #    yoff = tele_yoff
-    #    zoff = np.linalg.norm(tele_beam)+zxoff+zyoff
-    #    zmn['00'] = zoff+dr_rec-dr_send
-    #    thmn['00'] = 0
-    #    xoff = xoff/np.cos(angx)
-    #    yoff = yoff/np.cos(angy)
-    #    offset = np.array([xoff,yoff])
-
-    #    return zmn, thmn, offset, [angx,angy]
-
-    def TTL_zern(self,i,t,side='l'):
-        zmn, thmn, offset, [angx,angy] = self.TTL_zern_calc(i,t,side=side)
-
-        ps=np.zeros((self.Nbinsx,self.Nbinsy))
-        for n in range(0,2):
-            for m in range(-n,n+1):
-                if ((m%2) == (n%2)):
-                    ps = ps + self.zern(m,n,zmn=zmn,thmn=thmn,offset=offset)
-        wave_ttl = np.nanmean(ps)
-
-        return wave_ttl
-
-    def scan_tele(self):
-        self.wf_scan_l = lambda i, t: self.TTL_zern(i,t,side='l')
-        self.wf_scan_r = lambda i, t: self.TTL_zern(i,t,side='r')
-
-        return 0
-
-
-
-
-
-
-    def test(self):
-        print('This is a test function')
-
 #Obtining TTL by pointing
+    def mean_angin(self,i,side,dt=False): #Used
+        t_vec = self.data.t_all
 
-    def zern_aim(self,i_self,t,side='l'):
+        if dt==False:
+            dt = t_vec[1]-t_vec[0]
+        t_vec = np.linspace(t_vec[0],t_vec[-1],int(((t_vec[-1]-t_vec[0])/dt)+1))
+        #print(t_vec)
+        ang=[]
+        for t in t_vec:
+            if side=='l':
+                ang.append(self.aim.tele_l_ang(i,t)-np.radians(-30))
+            elif side=='r':
+                ang.append(self.aim.tele_r_ang(i,t)-np.radians(30))
+        ang = np.array(ang)
+
+        return np.nanmean(ang)
+
+    def do_mean_angin(self,dt=False): #Used
+        self.mean_angin_l={}
+        self.mean_angin_r={}
+
+        for i in range(1,4):
+            self.mean_angin_l[str(i)] = self.mean_angin(i,'l',dt=dt)
+            self.mean_angin_r[str(i)] = self.mean_angin(i,'r',dt=dt)
+
+        return 0
+
+    def zern_aim(self,i_self,t,side='l',ret='surface',ksi=[0,0],mode='auto',angin=False,angout=False,offset=False):
         # This function calculates the tilt and piston when receiving the beam in a telescope.
-        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
+        if mode=='auto':
+            [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
+            
+            try:
+                val = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+            except AttributeError,e:
+                if str(e)=="WFE instance has no attribute 'aim'":
+                    val = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
+                    #start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
 
-        if side=='l':
-            i_next = i_left
-            tdel = self.Ndata.data.L_rl_func_tot(i_self,t)
-            beam_send = self.aim.beam_r_vec(i_next,t-tdel)
-            beam_send_coor = self.aim.beam_r_coor(i_next,t-tdel)
-            tele_rec_coor = self.aim.tele_l_coor(i_self,t)
+            
+            n_beam = val['coor_start'][1]
+            n_tele = val['coor_end'][1]
+            target_pos = val['target_pos']
+            beam_send_coor = val['coor_start']
+            tele_rec_coor = val['coor_end']
 
-        if side=='r':
-            i_next = i_right
-            tdel = self.Ndata.data.L_rr_func_tot(i_self,t)
-            beam_send = self.aim.beam_l_vec(i_next,t-tdel)
-            beam_send_coor = self.aim.beam_l_coor(i_next,t-tdel)
-            tele_rec_coor = self.aim.tele_r_coor(i_self,t)
+            np.dot(n_beam,n_tele)
+#            if side=='l':
+#                i_next = i_left
+#                tdel = self.data.L_rl_func_tot(i_self,t)
+#                beam_send = self.aim.beam_r_vec(i_next,t-tdel)
+#                beam_send_coor = self.aim.beam_r_coor(i_next,t-tdel)
+#                tele_rec = self.aim.tele_l_vec(i_self,t)
+#                angx_mean = self.mean_angin_l[str(i_self)]
+#
+#            if side=='r':
+#                i_next = i_right
+#                tdel = self.data.L_rr_func_tot(i_self,t)
+#                beam_send = self.aim.beam_l_vec(i_next,t-tdel)
+#                beam_send_coor = self.aim.beam_l_coor(i_next,t-tdel)
+#                tele_rec = self.aim.tele_r_vec(i_self,t)
+#                angx_mean = self.mean_angin_r[str(i_self)]
+#            
+#            tele_beam = LA.matmul(beam_send_coor,tele_rec)
+#            beam_beam = LA.matmul(beam_send_coor,beam_send)
+#            [zoff_0,yoff_0,xoff_0] = beam_beam + tele_beam
+            [zoff_0,yoff_0,xoff_0] = target_pos # Offset in beam send frame
 
-        tele_rec = L_tele*tele_rec_coor[0]
-        beam_tele = LA.matmul(tele_rec_coor,beam_send)
-        #beam_tele[0] = -beam_tele[0] 
-        #tele_beam = LA.matmul(beam_send_coor,tele_rec)
+#            z0 = beam_beam[0]
 
-        # Calculating offset w.r.t. center of telescope aperture
-        tele_proj = LA.unit(beam_send)*np.dot(tele_rec,LA.unit(beam_send))
-        piston_vec = beam_send + tele_proj
-        [q,yoff,xoff] = tele_rec-tele_proj
-        zoff = np.linalg.norm(piston_vec)
+            # Beam direction:
+            #bd_sending_frame = np.array([np.float64(1),0,0])
+            bd_original_frame = np.array(beam_send_coor[0])
+            bd_receiving_frame = LA.matmul(tele_rec_coor,bd_original_frame)
+            
+            # In receiving tele frame
+            offset_tele_frame = LA.matmul(tele_rec_coor,beam_send_coor[1]*yoff_0+beam_send_coor[2]*xoff_0)
+            #beam_receiving_frame = LA.matmul(tele_rec_coor,LA.matmul(np.linalg.inv(beam_send_coor),bd_sending_frame))
+
+            # Calculating tilt
+            #angx = np.arctan(abs(tele_beam[2]/tele_beam[0]))*np.sign(np.dot(tele_beam,beam_send_coor[2]))
+            # In sending frame
+            #angx = np.arctan(abs(target_direction[2]/target_direction[0]))*np.sign(np.dot(target_direction,beam_send_coor[2]))
+            angx = np.arctan(abs(bd_receiving_frame[2]/bd_receiving_frame[0]))*np.sign(np.dot(bd_original_frame,tele_rec_coor[2]))
+
+            #angy = np.arctan(abs(tele_beam[1]/tele_beam[0]))*np.sign(np.dot(tele_beam,beam_send_coor[1]))
+            #angy = np.arctan(abs(target_direction[1]/target_direction[0]))*np.sign(np.dot(target_direction,beam_send_coor[1]))
+            angy = np.arctan(abs(bd_receiving_frame[1]/bd_receiving_frame[0]))*np.sign(np.dot(bd_original_frame,tele_rec_coor[1]))
+
+            # In receiving frame
+#        elif mode=='manual':
+#            angx = angin
+#            angy = angout
+#            angx_mean=0
+#            [xoff_0,yoff_0,zoff_0] = np.float64(offset)
+#            z0 = zoff_0
+
         
-        # Calculating tilt
-        angx = np.arctan(-beam_tele[2]/abs(beam_tele[0]))
-        angy = np.arctan(-beam_tele[1]/abs(beam_tele[0]))
-        
 
-        #if self.jitter_tele_done!=False: #..adjust for new method
-        #    if side =='l':
-        #        pr = 0
-        #        ps = 1
-        #    elif side == 'r':
-        #        pr = 1
-        #        ps = 0
 
-        #    dr_send = self.jitter_tele_done[ps][i_next-1][2](t-tdel)
-        #    din_send = self.jitter_tele_done[ps][i_next-1][0](t-tdel)
-        #    dout_send = self.jitter_tele_done[ps][i_next-1][1](t-tdel)
-        #    dr_rec = self.jitter_tele_done[pr][i_self-1][2](t)
-        #    din_rec = self.jitter_tele_done[pr][i_self-1][0](t)
-        #    dout_rec = self.jitter_tele_done[pr][i_self-1][1](t)
-        #    
 
-        #    r_self = self.Ndata.data.r_func(i_self,t)
-        #    n_self = n
-        #    x_self = LA.unit(np.cross(n_self,r_self))
 
-        #    dr_rec = LA.unit(r_self)*dr_rec
-        #    dout_rec = LA.unit(n_self)*dout_rec
-        #    din_rec = x_self*din_rec
-        #    #print(dr_rec,dout_rec,din_rec)
-
-        #    djitter_rec = dr_rec+dout_rec+din_rec
-        #    #print(djitter_rec)
-        #    djitter_rec = LA.tele_coor(djitter_rec,beam_send,n_next)
-        #    djitter = djitter_rec - np.array([din_send,dout_send,dr_send])
-
-        #    #print(djitter)
-
-        #else:
-        #    dr_send = 0
-        #    din_send = 0
-        #    dout_send = 0
-        #    dr_rec = 0
-        #    din_rec = 0
-        #    dout_rec = 0
-        #    
-        #    djitter=np.array([0,0,0])
-                
-        piston = self.z_solve(xoff,yoff,zoff)
+#        #angx = angx+angx_mean
+#        xoff_tilt = ksi[0]*np.cos(angx)
+#        yoff_tilt = ksi[1]*np.cos(angy)
+#        zoff_tilt = ksi[0]*np.sin(angx)+ksi[1]*np.sin(angy)
+#
+#        xoff = xoff_0+xoff_tilt
+#        yoff = yoff_0+yoff_tilt
+#        zoff = zoff_0+zoff_tilt
+#        #print('zoff:')
+#        #print(zoff_0,zoff_tilt,zoff)
+#        
+#        #piston_0 = self.z_solve(ksi[0],ksi[1],z0,ret='piston')
+#        #piston_tilt = self.z_solve(xoff_tilt,yoff_tilt,zoff_tilt+,ret='piston')
+#        #piston_1 = self.z_solve(xoff,yoff,zoff,ret='piston')
+        try:
+            [piston,z_extra] = self.z_solve(xoff_0,yoff_0,zoff_0,ret='all')
+        except:
+            [piston,z_extra] = [np.nan,np.nan]
+            print(xoff_0,yoff_0,zoff_0)
+         
+        #z_extra = z0 - piston
         R = self.R(piston)
+        R_vec_beam_send = np.array([R**2 - xoff_0**2 - yoff_0**2,yoff_0,xoff_0])
+        R_vec_tele_rec = LA.matmul(tele_rec_coor,LA.matmul(np.linalg.inv(beam_send_coor),R_vec_beam_send))
+
 
         # Tilt by offset
-        angxoff = np.arcsin(xoff/R)
-        angyoff = np.arcsin(yoff/R)
-
+        #angxoff = np.arcsin(xoff_0/R)
+        #angyoff = np.arcsin(yoff_0/R)
+        angxoff = np.arctan(abs(R_vec_tele_rec[2]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[2])
+        angyoff = np.arctan(abs(R_vec_tele_rec[1]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[1])
+        #... check if sign is correct
+        
         # Zernike polynomials
-        angx_tot = angx+angxoff
+        #print(angx,angy,angxoff,angyoff)
+        angx_tot = angx+angxoff #..check if add or subtract
         angy_tot = angy+angyoff
-        thmn11 = np.arctan(angy_tot/angx_tot)
-        zmn11 = (angx_tot**2 + angy_tot**2)**0.5
-        zmn00 = piston
+        #print(angx_tot,angy_tot)
+        
+        if ret=='piston':
+            return piston
+        elif ret=='angx_tot':
+            return angx_tot
+        elif ret=='angx_off':
+            return angxoff
+        elif ret=='angx_tilt':
+            return angx
+        elif ret=='angy_tot':
+            return angy_tot
+        elif ret=='angy_off':
+            return angyoff
+        elif ret=='angy_tilt':
+            return angy
+        
+#        elif ret=='z0':
+#            return z0
+#        elif ret=='zoff':
+#            return zoff
+        elif ret=='zoff_0':
+            return zoff_0
+#        elif ret=='zoff_tilt':
+#            return zoff_tilt
+        elif ret=='z_extra':
+            return z_extra
+        elif ret=='power':
+            r = ((yoff_0**2)+(xoff_0**2))**0.5
+            u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
+            ang = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            return (abs(u)**2)[0]*np.cos(ang)
+        elif ret=='r':
+            return ((yoff_0**2)+(xoff_0**2))**0.5
+        elif ret=='FOV':
+            #wfront_direction = np.array([np.cos(-angy_tot)*np.cos(-angx_tot),np.sin(-angy_tot),np.sin(-angx_tot)])
+            #return PAA_LISA.la().angle(direction,-target_pos)
+            return np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
+            #return PAA_LISA.la().angle(direction,-wfront_direction)
+        elif ret=='wfront_direction':
+            wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])
+            print(wfront_direction)
+            return wfront_direction[0]
+        elif ret=='target_direction':
+            return target_direction
+        elif ret=='R_vec_beam_send':
+            return R_vec_beam_send
+        elif ret=='R_vec_tele_rec':
+            return R_vec_tele_rec
+        elif ret=='tilt':
+            return PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+        elif ret=='beam_inc_tele_frame':
+            return bd_receiving_frame
+        elif ret=='all_val':
+            retval={}
+            retval['piston']=piston
+            retval['angx_tot'] = angx_tot
+            retval['angx_tilt'] = angx
+            retval['angx_off'] = angxoff
+            retval['angy_tot'] = angy_tot
+            retval['angy_tilt'] = angy
+            retval['angy_off'] = angyoff
+            retval['zoff_0']=zoff_o
+            retval['z_extra']=z_extra
+            r = ((yoff_0**2)+(xoff_0**2))**0.5
+            retval['r']=r
+            u = self.u_rz_calc(r,zoff_0,i_self,t,side,xlist=[0],ylist=[0])
+            ang = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            power =  (abs(u)**2)[0]*np.cos(ang)
+            retval['power']=power
+            retval['FOV'] = np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
+            wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])
+            retval['wfront_direction'] = wfront_direction[0]
+            retval['target_direction']=target_direction
+            retval['R_vec_tele_rec']=R_vec_tele_rec
+            retval['tilt'] = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+            retval['beam_inc_tele_frame'] = bd_receiving_frame
 
-        zmn={}
-        thmn={}
-        zmn['00'] = zmn00
-        zmn['11'] = zmn11
-        thmn['11'] = thmn11
-        self.zmn = zmn
-        self.thmn = thmn
+            return retval
 
-        return [xoff,yoff,zoff],zmn,thmn
 
-    
+
+        elif ret=='surface':
+            thmn11 = np.arctan(angy/angx)
+            zmn11 = (angx**2 + angy**2)**0.5
+            zmn00 = piston
+            zmn={}
+            thmn={}
+            zmn['00'] = zmn00
+            zmn['11'] = zmn11
+            thmn['11'] = thmn11
+            self.zmn = zmn
+            self.thmn = thmn
+            power_angle = [angx_tot,angy_tot]
+            return [xoff_0,yoff_0,zoff_0],zmn,thmn
+
+    def calc_piston_val(self,i,t,side,ret='piston'):
+        piston = lambda x,y: self.zern_aim(i,t,side=side,ret=ret,ksi=[x,y])
+        if self.speed_on==2:
+            xlist=[0]
+            ylist=[0]
+        else:
+            xlist=False
+            ylist=False
+        
+        try:
+            piston_ttl = self.aperture(xlist,ylist,piston,dType=np.float64)
+            N_flat = PAA_LISA.utils.flatten(piston_ttl)
+            N = len(N_flat) - np.sum(np.isnan(N_flat))
+             
+            try:
+                return np.nanmean(piston_ttl),np.nanvar(piston_ttl)/np.float64(N)
+            except RuntimeWarning:
+                print(piston(0,0))
+                return np.nan,np.nan
+        except ValueError,e:
+            if str(e)=='setting an array element with a sequence.':
+                return piston(0,0),'vec'
+
+
+    def piston_val(self):
+        self.piston_val_l = lambda i,t: self.calc_piston_val(i,t,'l',ret='piston')
+        self.piston_val_r = lambda i,t: self.calc_piston_val(i,t,'r',ret='piston')
+        self.ztilt_val_l = lambda i,t: self.calc_piston_val(i,t,'l',ret='z_extra')
+        self.ztilt_val_r = lambda i,t: self.calc_piston_val(i,t,'r',ret='z_extra')
+
+        return 0 
+
+
+
+
+
+
+
 # Calulate P
     def P_calc(self,i,t,side='l'): # Only simple calculation (middel pixel)
         if side=='l':
-            P = np.cos(self.zern_aim(i,t,side='l')[1]['11'])*self.Ndata.data.P_L
+            P = np.cos(self.zern_aim(i,t,side='l')[1]['11'])*self.data.P_L
         elif side=='r':
-            P = np.cos(self.zern_aim(i,t,side='r')[1]['11'])*self.Ndata.data.P_L
+            P = np.cos(self.zern_aim(i,t,side='r')[1]['11'])*self.data.P_L
         
         return P
 
@@ -632,9 +661,9 @@ class WFE():
             z = zmn['00']
         z = z + x0*np.sin(angx)+y0*np.sin(angy)
 
-        labda = self.Ndata.data.labda
+        labda = self.data.labda
         w = self.w(z)
-        r0 = self.Ndata.data.D*0.5
+        r0 = self.data.D*0.5
         k = (2*np.pi)/labda #...adjust for laser noise
         wac = r0/w
         q = -1.0/(wac**2) # ...In Sasso paper not with minus sign!!!
@@ -694,15 +723,6 @@ class WFE():
 
 
         return u_2,I,I_2
-
-#    def power_rec(self,y=0,x=0):
-#        u0,I0 = self.zern_para(z=False,zmn=False,thmn=False)
-#        
-#        x0 = x
-#        y  
-#        x = 
-
-
 
 
 

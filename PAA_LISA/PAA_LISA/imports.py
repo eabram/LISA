@@ -1,12 +1,12 @@
 from synthlisa import *
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import os
 from fractions import Fraction
 import math
 import datetime
 from scipy.interpolate import interp1d
-from scipy.interpolate import RegularGridInterpolator
+#from scipy.interpolate import RegularGridInterpolator
 from class_orbit import orbit
 import warnings
 warnings.filterwarnings('ignore', 'The iteration is not making good progress')
@@ -19,7 +19,7 @@ import runfile
 import plotfile2
 import save_fig
 import writefile
-import functions as utils
+import utils
 
 year2sec=32536000
 day2sec=year2sec/365.25
