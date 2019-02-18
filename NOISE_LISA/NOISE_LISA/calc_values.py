@@ -38,7 +38,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
         side=[side]
     
     len_short=False
-    if len(meas)==1:
+    if type(meas)==str:
         meas = [meas]
         len_short=True
 
@@ -47,7 +47,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
     for m in meas:
         title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
         iteration = 'Iteration:: '+ str(wfe.iteration)
-        measurement = 'Measurement:: '+meas
+        measurement = 'Measurement:: '+m
 
         ret={}
         ret['mean']={}
@@ -59,7 +59,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
                 mean=[]
                 var=[]
                 for t in t_vec:
-                    calc = wfe.calc_piston_val(i,t,s,ret=meas)
+                    calc = wfe.calc_piston_val(i,t,s,ret=m)
                     if calc[-1]=='vec':
                         mean.append([t,calc[0]])
                         var.append([t,np.nan])
@@ -69,7 +69,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston'):
                 ret['mean'][str(i)][s]=mean
                 ret['var'][str(i)][s]=var
         
-        ret_all[m] title, iteration, measurement, ret
+        ret_all[m] = title, iteration, measurement, ret
 
     if len_short==True:
         return ret_all[meas[0]]
