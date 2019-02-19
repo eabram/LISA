@@ -244,7 +244,19 @@ def read(filename='',ret={},direct=''):
                 else:
                     [x,y] = line.split(';')
                     ret[key0][key1][iteration][key2][key3]['x'] = np.append(ret[key0][key1][iteration][key2][key3]['x'],np.float64(rdln(x)))
-                    ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
+                    try:
+                        ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
+                    except ValueError:
+                        ynew_list = rdln(y)[1:-1].split(' ')
+                        ynew_write=[]
+                        for ynew in ynew_list:
+                            try:
+                                ynew_write.append(np.float64(ynew))
+                            except:
+                                pass
+                        ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.array(ynew_write))
+
+
             
             readfile.close()
 

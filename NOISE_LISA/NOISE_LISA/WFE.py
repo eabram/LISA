@@ -491,7 +491,7 @@ class WFE():
          
         #z_extra = z0 - piston
         R = self.R(piston)
-        R_vec_beam_send = np.array([R**2 - xoff_0**2 - yoff_0**2,yoff_0,xoff_0])
+        R_vec_beam_send = np.array([(R**2 - xoff_0**2 - yoff_0**2)**0.5,yoff_0,xoff_0])
         R_vec_tele_rec = LA.matmul(tele_rec_coor,LA.matmul(np.linalg.inv(beam_send_coor),R_vec_beam_send))
 
 
@@ -583,6 +583,12 @@ class WFE():
             retval['R_vec_tele_rec']=R_vec_tele_rec
             retval['tilt'] = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
             retval['beam_inc_tele_frame'] = bd_receiving_frame
+            if side=='l':
+                retval['tele_ang']=self.aim.tele_l_ang(i_self,t)
+                retval['PAAM_ang']=self.aim.beam_l_ang(i_self,t)
+            elif side=='r':
+                retval['tele_ang']=self.aim.tele_r_ang(i_self,t)
+                retval['PAAM_ang']=self.aim.beam_r_ang(i_self,t)
 
             return retval
 
