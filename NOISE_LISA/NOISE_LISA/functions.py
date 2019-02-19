@@ -184,14 +184,20 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
 def rdln(line):
     return line[0:-1]
 
-def read(filename='',ret={},direct=''):
+def read(filename='',direct=''):
+    ret={}
     if direct=='':
         direct = get_folder()
 
     if filename=='':
         f_get=[]
+        f_list=[]
         for (dirpath, dirnames, filenames) in os.walk(direct):
-            filenames.sort()
+            #filenames.sort()
+            for f in filenames:
+                f_list.append(dirpath+'/'+f.split('/')[-1])
+
+        filenames=f_list
     else:
         print('Please select filename or leave blank')
 
@@ -209,7 +215,7 @@ def read(filename='',ret={},direct=''):
             #print(filenames)
             print('Reading '+filename_select)
 
-            readfile = open(direct+filename_select,'r')
+            readfile = open(filename_select,'r')
 
             for line in readfile:
                 if 'Title' in line:

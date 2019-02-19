@@ -6,6 +6,154 @@ import calc_values
 import PAA_LISA
 import NOISE_LISA
 
+def compare_methods(wfe,SC,side,read_folder,meas_plot='all',methods1=['no control','no control'],methods2=['full control','full control'],lim=[3,-3]):
+    def get_output(ret,methods,SC,side,iteration=0):
+        return ret[methods[0]][methods[1]][str(iteration)]
+
+    def get_values(ret,meas,i,side,lim=[0,-1]):
+        x=[]
+        y=[]
+        if side=='l':
+            d = ret[meas]['SC'+str(i)+', left']
+        elif side =='r':
+            d = ret[meas]['SC'+str(i)+', right']
+        #for i in d:
+        #    x.append(i[0])
+        #    y.append(i[1])
+        x = d['x'][lim[0]:lim[1]]
+        y = d['y'][lim[0]:lim[1]]
+        
+        if len(x)!=len(y):
+            y_new=[]
+            for i in range(0,len(x)):
+                y_new.append(np.array([y[i*3],y[i*3+1],y[i*3+2]]))
+            y = np.array(y_new)        
+        
+        upperlimit=len(x)
+        for i in range(1,len(x)):
+            if x[i]<x[i-1]:
+                upperlimit=i
+                break
+        return x[0:upperlimit],y[0:upperlimit]
+
+    def get_FOV(pl):
+        x,y = pl['beam_inc_tele_frame mean']
+        x2,y2 = pl['R_vec_tele_rec mean']
+        FOV = []
+        R=[]
+        for i in range(0,len(x)):
+            FOV.append(np.arccos(-y[i][0]/np.linalg.norm(y[i])))
+        for i in range(0,len(x2)):
+            R.append(np.linalg.norm(y2[i]))
+        
+        pl['FOV_calc mean'] = x,np.array(FOV)
+        pl['R mean'] = x,np.array(R)
+        return pl
+        
+    def max_power(wfe,t):
+        i=1
+        I0 = wfe.P_L
+        z = np.linalg.norm(wfe.data.u_l_func_tot(i,t))
+        w = wfe.w(z)
+        w0 = wfe.w0_laser
+        
+        return I0*((w0/w)**2)*(wfe.D**2)*(np.pi/4.0)
+     
+    ret = NOISE_LISA.functions.read(direct=read_folder)
+    ret1 = get_output(ret,methods1,SC,side)
+    ret2 = get_output(ret,methods2,SC,side)
+
+    pl1 = {}
+    pl2 = {}
+    for m in ret1.keys():
+        x1,y1 = get_values(ret1,m,SC,side)
+        x2,y2 = get_values(ret2,m,SC,side)
+        pl1[m] = x1,y1
+        pl2[m] = x2,y2
+    pl1 = get_FOV(pl1)
+    pl2 = get_FOV(pl2)
+
+    meas = pl1.keys()
+    meas.sort()
+
+    ref={}
+    ref['angx_tot mean'] = lambda t: 0
+    ref['angy_tot mean'] = lambda t: 0
+    ref['piston mean'] = lambda t: np.linalg.norm(wfe.data.u_l_func_tot(1,t))
+    ref['R mean'] = ref['piston mean']
+    #ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(1,t)
+    ref['power mean'] = lambda t: max_power(wfe,t)
+    ref['FOV mean'] = lambda t: wfe.FOV
+    ref['FOV_calc mean'] = lambda t: wfe.FOV
+    if side=='l':
+        scale=-1
+    elif side=='r':
+        scale=1
+    ref['tele_ang mean'] = lambda t: np.radians(30)*scale
+
+    for m in meas:
+        if m not in ref.keys():
+            ref[m] = lambda t: 0
+
+    unit={}
+    for m in meas:
+        if 'ang' in m or 'FOV' in m:
+            unit[m] = ['Angle (microrad)',1e6]
+        elif 'piston' in m or 'r ' in m  or 'z_extra' in m or 'zoff' in m or 'R mean'==m:
+            unit[m] = ['Distance (km)',0.001]
+        elif 'power' in m:
+            unit[m]=['Power (W)',1]
+        else:
+            unit[m]=['AU',1]
+
+    if meas_plot=='all':
+        meas_plot=meas
+
+    f_all=[]
+    label1= 'tele: '+methods1[0]+', PAAM: '+methods1[1]
+    label2= 'tele: '+methods2[0]+', PAAM: '+methods2[1]
+    lim=[3,-3]
+    for m in range(0,len(meas_plot)):
+        x1,y1 = pl1[meas_plot[m]]
+        x2,y2 = pl2[meas_plot[m]]
+        x1_sec = x1[lim[0]:lim[1]]
+        x1 = x1_sec/wfe.day2sec
+        y1 = y1[lim[0]:lim[1]]*unit[meas_plot[m]][1]
+        x2 = x2[lim[0]:lim[1]]/wfe.day2sec
+        y2 = y2[lim[0]:lim[1]]*unit[meas_plot[m]][1]
+
+        f,ax = plt.subplots(2,2,figsize=(10,10))
+        plt.subplots_adjust(hspace=0.6,wspace=0.6)
+        f.suptitle(meas_plot[m])
+        ax[0,0].plot(x1,y1)
+        ax[0,0].set_title(label1,pad=20)
+
+        ax[0,1].plot(x2,y2)
+        ax[0,1].set_title(label2,pad=20)
+
+        y_ref = np.array([ref[meas_plot[m]](t)*unit[meas_plot[m]][1] for t in x1_sec])
+
+        ax[1,0].plot(x1,y1-y_ref,label=label1)
+        ax[1,0].plot(x2,y2-y_ref,label=label2)
+        ax[1,0].legend(loc='best')
+        ax[1,0].set_title('Relative difference w.r.t. optimal/standard',pad=20)
+
+        ax[1,1].plot(x1,y1,label=label1)
+        ax[1,1].plot(x2,y2,label=label2)
+        ax[1,1].plot(x1,y_ref,color='r',linestyle='--')
+        ax[1,1].legend(loc='best')
+        ax[1,1].set_title('Overview',pad=20)
+
+        for i in range(0,len(ax)):
+            for j in range(0,len(ax[i])):
+                ax[i,j].set_xlabel('Time (days)')
+                ax[i,j].set_ylabel(unit[meas_plot[m]][0])
+
+
+        f_all.append([meas_plot[m],label1,label2,f])
+
+    return f_all,ret1,ret2,meas_plot
+
 class plot_func():
     def __init__(self,wfe,**kwargs):
         self.wfe = wfe

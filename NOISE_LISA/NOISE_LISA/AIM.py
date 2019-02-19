@@ -413,8 +413,8 @@ class AIM():
         #ang_fc_l = lambda i,t: self.wfe.data.PAA_func['l_out'](i,t)
         #ang_fc_r = lambda i,t: self.wfe.data.PAA_func['r_out'](i,t)
         self.PAAM_control_ang_fc()
-        ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
-        ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
+        ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)*2
+        ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)*2
         
         
         self.PAAM_fc_ang_l = ang_fc_l

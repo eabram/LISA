@@ -148,8 +148,8 @@ class WFE():
             self.aim_old = self.aim
             del self.aim
             self.aim = aim
-            self.do_mean_angin()
-            self.piston_val()
+            #self.do_mean_angin()
+            #self.piston_val()
 
     # Beam properties equations
 
