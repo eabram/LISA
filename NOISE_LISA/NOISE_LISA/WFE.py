@@ -105,7 +105,7 @@ class WFE():
         return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=True,init=False): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=True,init=False,sampled=False): #...add more variables
         
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -124,7 +124,7 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = AIM(self,offset_control=offset_control,init=init)
+        aim = AIM(self,offset_control=offset_control,init=init,sampled=sampled)
 
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
         aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
