@@ -124,7 +124,7 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = AIM(self,offset_control=offset_control)
+        aim = AIM(self,offset_control=offset_control,init=init)
 
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
         aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)

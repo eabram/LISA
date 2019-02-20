@@ -427,9 +427,38 @@ def add_func(func_list):
 
     return lambda f: add_func_help(func_list,f)
 
+def get_matrix_from_function(A,t):
+    ret=[]
+    for i in range(0,len(A)):
+        vec=[]
+        for j in range(0,len(A[i])):
+            vec.append(A[i][j](t))
+        ret.append(np.array(vec))
+
+    return np.array(ret)
+
 def interpolate(x,y,method='interp1d'):
     if method=='interp1d':
-        return interp1d(x,y,bounds_error=False)
+        if str(type(y[0]))!="<type 'numpy.ndarray'>":
+            return interp1d(x,y,bounds_error=False)
+        else:
+            type_dim = str(type(y[0,0]))
+            if type_dim!="<type 'numpy.ndarray'>":
+                ret=[]
+                for l in range(0,len(y[0])):
+                    ret.append(interp1d(x,y[:,l],bounds_error=False))
+
+                return lambda t: np.array([ret[0](t),ret[1](t),ret[2](t)])
+            else:
+                ret=[]
+                for i in range(0,len(y[0])):
+                    vec=[]
+                    for j in range(0,len(y[0][i])):
+                        vec.append(interp1d(x,y[:,i,j],bounds_error=False))
+                    ret.append(np.array(vec))
+                return lambda t: get_matrix_from_function(np.array(ret),t)
+ 
+
     else:
         print('Please select proper interpolation method (interp1d)')
 

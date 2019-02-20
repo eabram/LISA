@@ -18,14 +18,123 @@ class AIM():
         self.tele_method = wfe.tele_control
         self.offset_control = kwargs.pop('offset_control',False)
         self.compensation_tele = kwargs.pop('compensation_tele',True)
+
         global LA
         LA = PAA_LISA.la()
         import imports
         
         self.wfe = wfe
+        init_set = kwargs.pop('init',False)
+        if init_set==True:
+            self.get_t_sampled()
+
+
         self.noise = pack.Noise(wfe=wfe)
         self.PAAM_method = wfe.PAAM_control_method
         self.tele_method = wfe.tele_control
+
+    def get_t_sampled(self):
+        t_sample0 = self.wfe.t_all
+
+        t_sample_all_l = []
+        t_sample_all_r = []
+
+        for i_self in range(1,4):
+            t_add_l = self.wfe.data.L_rl_func_tot
+            t_add_r = self.wfe.data.L_rr_func_tot
+
+            t_sample_l=[]
+            t_sample_r=[]
+            for t in t_sample0:
+                t_sample_l.append(t - t_add_l(i_self,t))
+                t_sample_r.append(t - t_add_r(i_self,t))
+                t_sample_l.append(t)
+                t_sample_r.append(t)
+            t_sample_all_l.append(t_sample_l)
+            t_sample_all_r.append(t_sample_r)
+        
+        self.t_sample_l = t_sample_all_l
+        self.t_sample_r = t_sample_all_r
+
+        return 0                   
+
+    def sampled_pointing(self,mode):
+        # Sample pointing
+
+        f_l_ang=[]
+        f_l_coor=[]
+        f_l_vec=[]
+        f_l_start=[]
+        f_l_direct=[]
+        f_r_ang=[]
+        f_r_coor=[]
+        f_r_vec=[]
+        f_r_start=[]
+        f_r_direct=[]
+
+        t_sample_l = self.wfe.aim0.t_sample_l
+        t_sample_r = self.wfe.aim0.t_sample_r
+
+        for i_self in range(1,4):
+            x_l = t_sample_l[i_self-1]
+            x_r = t_sample_r[i_self-1]
+            if mode=='tele':
+                y_l_ang = np.array([self.wfe.aim_old.tele_l_ang(i_self,t) for t in x_l])
+                y_l_coor = np.array([self.wfe.aim_old.tele_l_coor(i_self,t) for t in x_l])
+                y_l_vec = np.array([self.wfe.aim_old.tele_l_vec(i_self,t) for t in x_l])
+
+                y_r_ang = np.array([self.wfe.aim_old.tele_r_ang(i_self,t) for t in x_r])
+                y_r_coor = np.array([self.wfe.aim_old.tele_r_coor(i_self,t) for t in x_r])
+                y_r_vec = np.array([self.wfe.aim_old.tele_r_vec(i_self,t) for t in x_r])
+                
+                f_l_ang.append(pack.functions.interpolate(x_l,y_l_ang))
+                f_l_coor.append(pack.functions.interpolate(x_l,y_l_coor))
+                f_l_vec.append(pack.functions.interpolate(x_l,y_l_vec))
+                f_r_ang.append(pack.functions.interpolate(x_r,y_r_ang))
+                f_r_coor.append(pack.functions.interpolate(x_r,y_r_coor))
+                f_r_vec.append(pack.functions.interpolate(x_r,y_r_vec))
+ 
+            elif mode=='PAAM':
+                y_l_ang = np.array([self.wfe.aim_old.beam_l_ang(i_self,t) for t in x_l])
+                y_l_start = np.array([self.wfe.aim_old.beam_l_start(i_self,t) for t in x_l])
+                y_l_coor = np.array([self.wfe.aim_old.beam_l_coor(i_self,t) for t in x_l])
+                y_l_direct = np.array([self.wfe.aim_old.beam_l_direct(i_self,t) for t in x_l])
+
+                y_r_ang = np.array([self.wfe.aim_old.beam_r_ang(i_self,t) for t in x_r])
+                y_r_start = np.array([self.wfe.aim_old.beam_r_start(i_self,t) for t in x_r])
+                y_r_coor = np.array([self.wfe.aim_old.beam_r_coor(i_self,t) for t in x_r])
+                y_r_direct = np.array([self.wfe.aim_old.beam_r_direct(i_self,t) for t in x_r])
+
+                f_l_ang.append(pack.functions.interpolate(x_l,y_l_ang))
+                f_l_start.append(pack.functions.interpolate(x_lt,y_l_start))
+                f_l_coor.append(pack.functions.interpolate(x_l,y_l_coor))
+                f_l_direct.append(pack.functions.interpolate(x_l,y_l_direct))
+                f_r_ang.append(pack.functions.interpolate(x_r,y_r_ang))
+                f_r_start.append(pack.functions.interpolate(x_r,y_r_start))
+                f_r_coor.append(pack.functions.interpolate(x_r,y_r_coor))
+                f_r_direct.append(pack.functions.interpolate(x_r,y_r_direct))
+
+        
+        f_l={}
+        f_r={}
+        if mode=='tele':
+            f_l['ang'] = f_l_ang
+            f_l['coor'] = f_l_coor
+            f_l['vec'] = f_l_vec
+            f_r['ang'] = f_r_ang
+            f_r['coor'] = f_r_coor
+            f_r['vec'] = f_r_vec
+        elif mode=='PAAM':
+            f_l['ang'] = f_r_ang
+            f_l['start'] = f_r_start
+            f_l['coor'] = f_r_coor
+            f_l['direct'] = f_r_direct
+            f_r['ang'] = f_r_ang
+            f_r['start'] = f_r_start
+            f_r['coor'] = f_r_coor
+            f_r['direct'] = f_r_direct
+
+        return f_l,f_r
 
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
@@ -111,25 +220,25 @@ class AIM():
 
         return [angx,angy,delay]
 
-    def tele_control_ang_fc(self):
+    def tele_control_ang_fc(self,iteration_val=False):
         # Obtaines functions for optimal telescope pointing vector
         delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[2]
         delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[2]
         ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[0]*0.5 #...
         ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[0]*0.5
  
-        self.tele_ang_l_fc = lambda i,t: self.wfe.aim_old.tele_l_ang(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
-        self.tele_ang_r_fc = lambda i,t: self.wfe.aim_old.tele_r_ang(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
-
-        #self.tele_ang_l_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='l')
-        #self.tele_ang_r_fc = lambda i,t: self.tele_control_ang_fc_calc(i,t,side='r')
-
+        if iteration_val==False:
+            self.tele_ang_l_fc = lambda i,t: self.wfe.aim_old.tele_l_ang(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
+            self.tele_ang_r_fc = lambda i,t: self.wfe.aim_old.tele_r_ang(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
+        else:
+            f_l,f_r = self.sampled_pointing('tele')
+            self.tele_ang_l_fc = lambda i,t: f_l[i-1](t)+ang_tele_extra_l(i,t+delay_l(i,t))
+            self.tele_ang_r_fc = lambda i,t: f_r[i-1](t)+ang_tele_extra_r(i,t+delay_r(i,t))
+ 
         return 0
 
 
     def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False):
-
-        self.tele_control_ang_fc()
 
         if method == False:
             method = self.tele_method
@@ -139,34 +248,13 @@ class AIM():
         print('The telescope control method is: '+method)
         print(' ')
         
-        tele_l0 = self.tele_ang_l_fc
-        tele_r0 = self.tele_ang_r_fc
-        if iteration>0:
-            print('Number of pointing iterations is '+str(iteration))
-            tele_l_extr0=lambda i,t: 0
-            tele_r_extr0=lambda i,t: 0
-            step=0
-            while step<iteration:
-                tele_vec0 = self.tele_aim_vec([tele_l0,tele_r0])
-                tele_l_extr1 = lambda i,t: self.iteration_tele_calc(i,t,'l',tele_vec0)
-                tele_r_extr1 = lambda i,t: self.iteration_tele_calc(i,t,'r',tele_vec0)
-                tele_l1 = lambda i,t: tele_l0(i,t)+tele_l_extr1(i,t)
-                tele_r1 = lambda i,t: tele_r0(i,t)+tele_r_extr1(i,t)
-                #del tele_l0, tele_r0, tele_l_extr0, tele_r_extr0,tele_vec0
-                #tele_l0 = tele_l1
-                #tele_r0 = tele_r1
-                #tele_l_extr0 = tele_l_extr1
-                #tele_r_extr0 = tele_r_extr1
-                #del tele_vec0, tele_l_extr1, tele_r_extr1, tele_l1, tele_r1
-
-                step=step+1
-            tele_l = tele_l1
-            tele_r = tele_r1
-        else:
-            tele_l = tele_l0
-            tele_r = tele_r0
-
-                
+        if iteration==0:
+            self.tele_control_ang_fc()
+        elif iteration>0:
+            self.tele_control_ang_fc(iteration_val=True)
+        
+        tele_l = self.tele_ang_l_fc
+        tele_r = self.tele_ang_r_fc                
 
         # Calculating telescope angle for 'full control', 'no control' and 'SS' (step and stair)
         if method=='full control':
