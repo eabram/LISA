@@ -60,17 +60,42 @@ class AIM():
         self.t_sample_r = t_sample_all_r
 
         return 0                  
+    
+    def get_funcions_from_sampling(self,samples):
+        [[y_l_tele,y_r_tele],[y_l_beam,y_r_beam]] = samples
+        
+        f_l_tele=[]
+        f_r_tele=[]
+        f_l_beam=[]
+        f_r_beam=[]
+        for i in range(0,len(y_l_tele)):
+            [xlt,ylt] = y_l_tele[i]
+            [xrt,yrt] = y_r_tele[i]
+            [xlb,ylb] = y_l_beam[i]
+            [xrb,yrb] = y_r_beam[i]
+            f_l_tele.append(pack.functions.interpolate(xlt,ylt))
+            f_r_tele.append(pack.functions.interpolate(xrt,yrt))
+            f_l_beam.append(pack.functions.interpolate(xlb,ylb))
+            f_r_beam.append(pack.functions.interpolate(xrb,yrb))
 
-    def get_sampled_pointing(self,option='start'):
-        f_l_tele,f_r_tele = self.sampled_pointing('tele',option=option)
-        f_l_beam,f_r_beam = self.sampled_pointing('PAAM',option=option)
+        f_l_tele_ret = PAA_LISA.utils.func_over_sc(f_l_tele)
+        f_r_tele_ret = PAA_LISA.utils.func_over_sc(f_r_tele)
+        f_l_beam_ret = PAA_LISA.utils.func_over_sc(f_l_beam)
+        f_r_beam_ret = PAA_LISA.utils.func_over_sc(f_r_beam)
 
+        return [[f_l_tele_ret,f_r_tele_ret],[f_l_beam_ret,f_r_beam_ret]]
+
+
+    def get_sampled_pointing(self,option='start',ret='val'):
+        [f_l_tele,f_r_tele] = self.sampled_pointing('tele',option=option,ret=ret)
+        [f_l_beam,f_r_beam] = self.sampled_pointing('PAAM',option=option,ret=ret)
+        
         self.sampled_val =  [[f_l_tele,f_r_tele],[f_l_beam,f_r_beam]]
+        self.sampled_val_type = ret
 
         return self.sampled_val
 
-    def sampled_pointing(self,mode,option='start'):
-
+    def sampled_pointing(self,mode,option='start',ret='val'):
         if option=='start':
             aim_use = self.wfe.aim0
         elif option=='previous':
@@ -92,7 +117,9 @@ class AIM():
 
         t_sample_l = self.wfe.aim0.t_sample_l
         t_sample_r = self.wfe.aim0.t_sample_r
-
+        
+        y_l_ang_all=[]
+        y_r_ang_all=[]
         for i_self in range(1,4):
             x_l = t_sample_l[i_self-1]
             x_r = t_sample_r[i_self-1]
@@ -132,28 +159,35 @@ class AIM():
                 #f_r_coor.append(pack.functions.interpolate(x_r,y_r_coor))
                 #f_r_direction.append(pack.functions.interpolate(x_r,y_r_direction))
 
+            y_l_ang_all.append([x_l,y_l_ang])
+            y_r_ang_all.append([x_r,y_r_ang])
+
+
         
         #f_l={}
         #f_r={}
 
-        if mode=='tele':
-            f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
-            #f_l['coor'] = f_l_coor
-            #f_l['vec'] = f_l_vec
-            f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
-            #f_r['coor'] = f_r_coor
-            #f_r['vec'] = f_r_vec
-        elif mode=='PAAM':
-            f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
-            #f_l['start'] = f_l_start
-            #f_l['coor'] = f_l_coor
-            #f_l['direction'] = f_l_direction
-            f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
-            #f_r['start'] = f_l_start
-            #f_r['coor'] = f_l_coor
-            #f_r['direction'] = f_l_direction
-
-        return f_l,f_r
+        if ret=='function':
+            if mode=='tele':
+                f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
+                #f_l['coor'] = f_l_coor
+                #f_l['vec'] = f_l_vec
+                f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
+                #f_r['coor'] = f_r_coor
+                #f_r['vec'] = f_r_vec
+            elif mode=='PAAM':
+                f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
+                #f_l['start'] = f_l_start
+                #f_l['coor'] = f_l_coor
+                #f_l['direction'] = f_l_direction
+                f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
+                #f_r['start'] = f_l_start
+                #f_r['coor'] = f_l_coor
+                #f_r['direction'] = f_l_direction
+            
+            return [f_l,f_r]
+        elif ret=='val':
+            return [y_l_ang_all,y_r_ang_all]
 
     def static_tele_angle(self,select,i,dt=False,side='l'):
         if select=='PAAM':
@@ -247,8 +281,10 @@ class AIM():
         ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[0]*0.5
  
         
-        if self.wfe.aim_old.sampled_on==True:
-            [[tele_l,tele_r],[beam_l,beam_r]] = self.wfe.aim_old.sampled_val
+        if self.sampled_on==True:
+            if type(self.sampled_val)==bool:
+                self.get_sampled_pointing(option='previous')
+            [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
         else:
             tele_l = self.wfe.aim_old.tele_l_ang
             tele_r = self.wfe.aim_old.tele_r_ang
@@ -263,7 +299,7 @@ class AIM():
 
     def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False):
         if self.init_set==False:
-            self.get_sampled_pointing()
+            self.get_sampled_pointing(option='previous')
             self.tele_control_ang_fc()
             tele_l = self.tele_ang_l_fc
             tele_r = self.tele_ang_r_fc
@@ -518,8 +554,8 @@ class AIM():
         ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l')[1]
         ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r')[1]
 
-        if self.wfe.aim_old.sampled_on==True:
-            [[tele_l,tele_r],[beam_l,beam_r]] = self.wfe.aim_old.sampled_val
+        if self.sampled_on==True:
+            [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
         else:
             tele_l = self.wfe.aim_old.tele_l_ang
             tele_r = self.wfe.aim_old.tele_r_ang
@@ -542,8 +578,8 @@ class AIM():
 
         if self.init_set==False:
             self.PAAM_control_ang_fc()
-            ang_fc_l = lambda i,t: sel.PAAM_ang_l_fc(i,t)*2
-            ang_fc_r = lambda i,t: sel.PAAM_ang_r_fc(i,t)*2
+            ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)*2
+            ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)*2
             self.PAAM_fc_ang_l = ang_fc_l
             self.PAAM_fc_ang_r = ang_fc_r
 
@@ -622,7 +658,7 @@ class AIM():
         ##self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_sr_func_tot(i,t)*c
         ##self.beam_r_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_r_func_tot(i,t))
         
-        
+ 
         self.get_coordinate_systems(iteration_val=self.sampled_on,option='self')
 
         return 0
@@ -648,9 +684,7 @@ class AIM():
             beam_l_ang = self.beam_l_ang
             beam_r_ang = self.beam_r_ang
         else:
-            if self.sampled_val==False:
-                self.get_sampled_pointing(option=option)
-            [[tele_l_ang,tele_r_ang],[beam_l_ang,beam_r_ang]] = self.sampled_val
+            [[tele_l_ang,tele_r_ang],[beam_l_ang,beam_r_ang]] = self.get_funcions_from_sampling(self.get_sampled_pointing(option=option))
 
         self.tele_l_coor = lambda i,t: self.get_tele_coor(i,t,tele_l_ang,tele_r_ang)[0][0]
         self.tele_r_coor = lambda i,t: self.get_tele_coor(i,t,tele_l_ang,tele_r_ang)[0][1]

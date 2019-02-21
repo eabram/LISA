@@ -6,7 +6,7 @@ import calc_values
 import PAA_LISA
 import NOISE_LISA
 
-def compare_methods(wfe,SC,side,read_folder,meas_plot='all',methods1=['no control','no control'],methods2=['full control','full control'],lim=[3,-3]):
+def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',methods1=['no control','no control'],methods2=['full control','full control'],lim=[3,-3]):
     def get_output(ret,methods,SC,side,iteration=0):
         return ret[methods[0]][methods[1]][str(iteration)]
 
@@ -58,8 +58,13 @@ def compare_methods(wfe,SC,side,read_folder,meas_plot='all',methods1=['no contro
         w0 = wfe.w0_laser
         
         return I0*((w0/w)**2)*(wfe.D**2)*(np.pi/4.0)
-     
-    ret = NOISE_LISA.functions.read(direct=read_folder)
+    
+    if read_folder==False:
+        if ret==False:
+            raise ValueError
+    else:
+        ret = NOISE_LISA.functions.read(direct=read_folder)
+
     ret1 = get_output(ret,methods1,SC,side)
     ret2 = get_output(ret,methods2,SC,side)
 
@@ -151,6 +156,7 @@ def compare_methods(wfe,SC,side,read_folder,meas_plot='all',methods1=['no contro
 
 
         f_all.append([meas_plot[m],label1,label2,f])
+        plt.close('all')
 
     return f_all,ret1,ret2,meas_plot
 
