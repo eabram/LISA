@@ -105,7 +105,7 @@ class WFE():
         return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,offset_control=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=True,init=False,sampled=False): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False): #...add more variables
         
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -124,34 +124,40 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = AIM(self,offset_control=offset_control,init=init,sampled=sampled)
-
+        aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0)
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
-        aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
-        #self.tele_control = aim.tele_method
-        #self.PAAM_control_method = aim.PAAM_method
+        out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
         
-        if init==True:
-            self.aim0 = aim
-            try:
-                del self.aim0
-            except AttributeError:
-                pass
-            self.aim0 = aim
-            self.aim_old = aim
-            self.aim = aim
-        else:
-            try:
-                del self.aim_old
-            except AttributeError:
-                pass
-            self.aim_old = self.aim
-            del self.aim
-            self.aim = aim
-            #self.do_mean_angin()
-            #self.piston_val()
+        
+        return out
 
     # Beam properties equations
+    
+    def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False):
+        
+        try:
+            del self.aim
+        except AttributeError:
+            pass
+
+        aim0 = self.get_pointing(tele_method = 'no control',PAAM_method='no control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False)
+        
+        aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True)
+
+        if iteration>0:
+            for i in range(0,iteration):
+                aimold = aimnew
+                del aimnew
+                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True)
+
+        
+        aimnew.iteration = iteration
+        self.aim = aimnew
+        
+        return aimnew
+
+
+
 
     def pupil(self,Nbins=2,**kwargs):
         D_calc=kwargs.pop('D',self.D)
@@ -392,13 +398,16 @@ class WFE():
 
         return 0
 
-    def zern_aim(self,i_self,t,side='l',ret='surface',ksi=[0,0],mode='auto',angin=False,angout=False,offset=False):
+    def zern_aim(self,i_self,t,side='l',ret='surface',ksi=[0,0],mode='auto',angin=False,angout=False,offset=False,aim='Default'):
         # This function calculates the tilt and piston when receiving the beam in a telescope.
+        if aim=='Default':
+            aim = self.aim
+
         if mode=='auto':
             [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
             
             try:
-                val = self.aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
+                val = aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
             except AttributeError,e:
                 if str(e)=="WFE instance has no attribute 'aim'":
                     val = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
@@ -584,11 +593,11 @@ class WFE():
             retval['tilt'] = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
             retval['beam_inc_tele_frame'] = bd_receiving_frame
             if side=='l':
-                retval['tele_ang']=self.aim.tele_l_ang(i_self,t)
-                retval['PAAM_ang']=self.aim.beam_l_ang(i_self,t)
+                retval['tele_ang']=aim.tele_l_ang(i_self,t)
+                retval['PAAM_ang']=aim.beam_l_ang(i_self,t)
             elif side=='r':
-                retval['tele_ang']=self.aim.tele_r_ang(i_self,t)
-                retval['PAAM_ang']=self.aim.beam_r_ang(i_self,t)
+                retval['tele_ang']=aim.tele_r_ang(i_self,t)
+                retval['PAAM_ang']=aim.beam_r_ang(i_self,t)
 
             return retval
 
@@ -608,9 +617,9 @@ class WFE():
             power_angle = [angx_tot,angy_tot]
             return [xoff_0,yoff_0,zoff_0],zmn,thmn
 
-    def calc_piston_val(self,i,t,side,ret=['piston'],size='small'):
+    def calc_piston_val(self,i,t,side,ret=['piston'],size='small',aim='Default'):
         if size == 'big' or ret=='all_val':
-            calc0 = lambda x,y: self.zern_aim(i,t,side=side,ret='all_val',ksi=[x,y])
+            calc0 = lambda x,y: self.zern_aim(i,t,side=side,ret='all_val',ksi=[x,y],aim=aim)
             calc={}
             meas = calc0(0,0).keys()
             for k in meas:
@@ -620,7 +629,7 @@ class WFE():
             calc={}
             meas = ret
             for m in meas:
-                calc[m] = lambda x,y: self.zern_aim(i,t,side=side,ret=m,ksi=[x,y])
+                calc[m] = lambda x,y: self.zern_aim(i,t,side=side,ret=m,ksi=[x,y],aim=aim)
             size='small'
 
 

@@ -30,7 +30,7 @@ def make_t_calc(wfe,t0=False,tend=False,dt=False):
     return t_plot
 
 
-def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1]):
+def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='Default'):
     t_vec = make_t_calc(wfe,dt=dt)
     if type(SC)==int:
         SC = [SC]
@@ -42,6 +42,10 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1]):
         meas = [meas]
         if meas[0]!='all_val':
             len_short=True
+    if len(meas)<4 and meas[0]!='all_val':
+        size='small'
+    else:
+        size='big'
 
     ret={}
     ret['mean']={}
@@ -52,10 +56,12 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1]):
         for s in side:
             mean={}
             var={}
-            calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big')
+            #calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big',aim=aim)
 
             for t in t_vec[lim[0]:lim[-1]]:
-                calc = calc_all(t)
+                print(t)
+                #calc = calc_all(t)
+                calc = wfe.calc_piston_val(i,t,s,ret=meas,size=size,aim=aim)
                 for m in calc.keys():
                 #calc = wfe.calc_piston_val(i,t,s,ret=m)
                     try:
@@ -108,7 +114,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1]):
 
     for m in meas:
         title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
-        iteration = 'Iteration:: '+ str(wfe.iteration)
+        iteration = 'Iteration:: '+ str(aim.iteration)
         measurement = 'Measurement:: '+m
 
         ret_all[m] = title, iteration, measurement, ret_sort[m]

@@ -16,7 +16,6 @@ class AIM():
         if self.PAAM_method =='SS_lim':
             self.FOV_control = kwargs.pop('FOV_control',1e-6)
         self.tele_method = wfe.tele_control
-        self.offset_control = kwargs.pop('offset_control',False)
         self.compensation_tele = kwargs.pop('compensation_tele',True)
         self.sampled_on = kwargs.pop('sampled',False)
 
@@ -28,6 +27,12 @@ class AIM():
         self.init_set = kwargs.pop('init',False)
         if self.init_set==True:
             self.get_t_sampled()
+        else:
+            self.aim0 = kwargs.pop('aim0',False)
+            self.aim_old = kwargs.pop('aim_old',False)
+            if self.aim_old==False:
+                print('Please select init or previous aim iteration')
+                raise ValueError
 
 
         self.noise = pack.Noise(wfe=wfe)
@@ -97,9 +102,9 @@ class AIM():
 
     def sampled_pointing(self,mode,option='start',ret='val'):
         if option=='start':
-            aim_use = self.wfe.aim0
+            aim_use = self.aim0
         elif option=='previous':
-            aim_use = self.wfe.aim_old
+            aim_use = self.aim_old
         elif option=='self':
             aim_use = self
         # Sample pointing
@@ -115,8 +120,8 @@ class AIM():
         f_r_start=[]
         f_r_direction=[]
 
-        t_sample_l = self.wfe.aim0.t_sample_l
-        t_sample_r = self.wfe.aim0.t_sample_r
+        t_sample_l = self.aim0.t_sample_l
+        t_sample_r = self.aim0.t_sample_r
         
         y_l_ang_all=[]
         y_r_ang_all=[]
@@ -189,71 +194,6 @@ class AIM():
         elif ret=='val':
             return [y_l_ang_all,y_r_ang_all]
 
-    def static_tele_angle(self,select,i,dt=False,side='l'):
-        if select=='PAAM':
-            if side=='l':
-                #func = self.wfe.data.PAA_func['l_out']
-                func = self.wfe.data.ang_out_l
-                #func_y = self.wfe.data.PAA_func['l_out']
-            elif side=='r':
-                #func = self.wfe.data.PAA_func['r_out']
-                func = self.wfe.data.ang_out_r
-                #func_y = self.wfe.data.PAA_func['r_out']
-        
-        elif select=='tele':
-            if side=='l':                                
-                func = self.tele_ang_l_fc    
-            elif side=='r':
-                func = self.tele_ang_r_fc 
-
-        t_all = self.wfe.data.t_all
-        if dt==False:
-            dt = t_all[1]-t_all[0]
-        t_vec = np.linspace(t_all[0],t_all[-1],(t_all[1]-t_all[0])/dt)
-        val=[]
-        for t in t_vec:
-            val.append(func(i,t))
-
-        return np.mean(val)
-
-    def do_static_tele_angle(self,select,dt=False):
-        tele_ang_off_l = lambda i: self.static_tele_angle(select,i,dt=dt,side='l')
-        tele_ang_off_r = lambda i: self.static_tele_angle(select,i,dt=dt,side='r')
-        
-        if select=='PAAM':
-            self.offset_PAAM_l = tele_ang_off_l
-            self.offset_PAAM_r = tele_ang_off_r
-        elif select=='tele':
-            self.offset_tele_l = tele_ang_off_l
-            self.offset_tele_r = tele_ang_off_r
-
-        return 0
-
-    def tele_control_ang_fc_calc(self,i,t,side='l'):
-        coor = functions.coor_SC(self.wfe,i,t)
-        if side=='l':
-            v = -self.wfe.data.u_l_func_tot(i,t)
-        elif side=='r':
-            v = -self.wfe.data.u_r_func_tot(i,t)
-        
-        if self.compensation_tele==True:
-            v = LA.unit(v)*(np.linalg.norm(v)-self.wfe.L_tele)
-
-        v_SC = LA.matmul(coor,v)
-        
-        #print(v_SC)
-        import warnings
-        warnings.simplefilter("error", RuntimeWarning)
-        try:
-            ang = np.arcsin(v_SC[2]/np.linalg.norm(v_SC[0])) # Angle betweed x and r component, whih is the optimal telescope pointing angle (inplane)
-        except RuntimeWarning:
-            print(v_SC[2],v_SC[0])
-            print(i,t,v)
-            ang = np.nan
-            pass
-
-        return ang
-
     def get_aim_accuracy(self,i,t,side):
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
         if side=='l':
@@ -263,7 +203,7 @@ class AIM():
             i_calc=i_right
             s_calc='l'
 
-        ret =  self.wfe.aim_old.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
+        ret =  self.aim_old.get_received_beam_duration(i_calc,t,s_calc,ksi=[0,0])
         [z,y,x] = LA.matmul(ret['coor_end'],ret['beam_in'])
         
         angx = np.sign(x)*abs(np.arctan(x/z))
@@ -286,10 +226,10 @@ class AIM():
                 self.get_sampled_pointing(option='previous')
             [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
         else:
-            tele_l = self.wfe.aim_old.tele_l_ang
-            tele_r = self.wfe.aim_old.tele_r_ang
-            beam_l = self.wfe.aim_old.beam_l_ang
-            beam_r = self.wfe.aim_old.beam_r_ang
+            tele_l = self.aim_old.tele_l_ang
+            tele_r = self.aim_old.tele_r_ang
+            beam_l = self.aim_old.beam_l_ang
+            beam_r = self.aim_old.beam_r_ang
 
         self.tele_ang_l_fc = lambda i,t: tele_l(i,t)+ang_tele_extra_l(i,t+delay_l(i,t))
         self.tele_ang_r_fc = lambda i,t: tele_r(i,t)+ang_tele_extra_r(i,t+delay_r(i,t))
@@ -557,10 +497,10 @@ class AIM():
         if self.sampled_on==True:
             [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
         else:
-            tele_l = self.wfe.aim_old.tele_l_ang
-            tele_r = self.wfe.aim_old.tele_r_ang
-            beam_l = self.wfe.aim_old.beam_l_ang
-            beam_r = self.wfe.aim_old.beam_r_ang
+            tele_l = self.aim_old.tele_l_ang
+            tele_r = self.aim_old.tele_r_ang
+            beam_l = self.aim_old.beam_l_ang
+            beam_r = self.aim_old.beam_r_ang
 
 
         self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t+delay_l(i,t))
@@ -596,7 +536,7 @@ class AIM():
             ang_l = ang_fc_l
             ang_r = ang_fc_r
         elif method=='no control':
-            self.do_static_tele_angle('PAAM')
+            #self.do_static_tele_angle('PAAM')
             if PAAM_ang_extra==False:
                 ang_l = lambda i,t: 0
                 ang_r = lambda i,t: 0
@@ -660,8 +600,8 @@ class AIM():
         
  
         self.get_coordinate_systems(iteration_val=self.sampled_on,option='self')
-
-        return 0
+        
+        return self
     
     
     def get_beam_coor(self,i,t,tele_l_ang,tele_r_ang,beam_l_ang,beam_r_ang):
