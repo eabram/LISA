@@ -580,6 +580,8 @@ class WFE():
             elif side=='r':
                 ret=aim.tele_r_ang(i_self,t)
             return ret
+        elif ret=='R':
+            return R
 
         elif ret=='all_val':
             retval={}
@@ -611,6 +613,7 @@ class WFE():
             elif side=='r':
                 retval['tele_ang']=aim.tele_r_ang(i_self,t)
                 retval['PAAM_ang']=aim.beam_r_ang(i_self,t)
+            retval['R'] = R
 
             return retval
 

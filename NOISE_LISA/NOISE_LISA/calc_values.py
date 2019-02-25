@@ -59,7 +59,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
             #calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big',aim=aim)
 
             for t in t_vec[lim[0]:lim[-1]]:
-                print(t)
+                #print(t)
                 #calc = calc_all(t)
                 calc = wfe.calc_piston_val(i,t,s,ret=meas,size=size,aim=aim)
                 for m in calc.keys():
