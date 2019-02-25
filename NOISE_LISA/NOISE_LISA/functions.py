@@ -248,11 +248,22 @@ def read(filename='',direct=''):
                         ret[key0][key1][iteration][key2][key3]['x']=np.array([])
                         ret[key0][key1][iteration][key2][key3]['y']=np.array([])
                 else:
-                    [x,y] = line.split(';')
-                    ret[key0][key1][iteration][key2][key3]['x'] = np.append(ret[key0][key1][iteration][key2][key3]['x'],np.float64(rdln(x)))
                     try:
-                        ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
-                    except ValueError:
+                        del x,y 
+                    except NameError:
+                        pass
+                    try:
+                        [x,y] = line.split(';')
+                        ret[key0][key1][iteration][key2][key3]['x'] = np.append(ret[key0][key1][iteration][key2][key3]['x'],np.float64(rdln(x)))
+                        try:
+                            ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
+                            value=True
+                        except ValueError:
+                            value=False
+                    except:
+                        print(line)
+                    if value==False:
+                        #except ValueError:
                         ynew_list = rdln(y)[1:-1].split(' ')
                         ynew_write=[]
                         for ynew in ynew_list:

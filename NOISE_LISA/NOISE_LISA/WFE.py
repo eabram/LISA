@@ -568,6 +568,19 @@ class WFE():
             return PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
         elif ret=='beam_inc_tele_frame':
             return bd_receiving_frame
+        elif ret=='PAAM_ang':
+            if side=='l':
+                ret=aim.beam_l_ang(i_self,t)
+            elif side=='r':
+                ret=aim.beam_r_ang(i_self,t)
+            return ret
+        elif ret=='tele_ang':
+            if side=='l':
+                ret=aim.tele_l_ang(i_self,t)
+            elif side=='r':
+                ret=aim.tele_r_ang(i_self,t)
+            return ret
+
         elif ret=='all_val':
             retval={}
             retval['piston']=piston
@@ -616,6 +629,9 @@ class WFE():
             self.thmn = thmn
             power_angle = [angx_tot,angy_tot]
             return [xoff_0,yoff_0,zoff_0],zmn,thmn
+
+        else:
+            print('Please select proper return value')
 
     def calc_piston_val(self,i,t,side,ret=['piston'],size='small',aim='Default'):
         if size == 'big' or ret=='all_val':

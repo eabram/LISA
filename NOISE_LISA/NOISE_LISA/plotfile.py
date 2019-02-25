@@ -10,31 +10,51 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     def get_output(ret,methods,SC,side,iteration=0):
         return ret[methods[0]][methods[1]][str(iteration)]
 
-    def get_values(ret,meas,i,side,lim=[0,-1]):
+    def get_values(wfe,ret,meas,i,side,xref,lim='Default'):
+        if lim=='Default':
+            lim=[0,len(wfe.t_all)]
         x=[]
         y=[]
-        if side=='l':
-            d = ret[meas]['SC'+str(i)+', left']
-        elif side =='r':
-            d = ret[meas]['SC'+str(i)+', right']
+        status=True
+        try:
+            if side=='l':
+                d = ret[meas]['SC'+str(i)+', left']
+            elif side =='r':
+                d = ret[meas]['SC'+str(i)+', right']
+            x = d['x'][lim[0]:lim[1]]
+            y = d['y'][lim[0]:lim[1]]
+        except KeyError, e:
+            print(meas)
+            print(e)
+            # = np.array([np.nan]*(lim[1]-lim[0]))
+            # = np.array([np.nan]*(lim[1]-lim[0]))
+            status = False
+            pass
         #for i in d:
         #    x.append(i[0])
         #    y.append(i[1])
-        x = d['x'][lim[0]:lim[1]]
-        y = d['y'][lim[0]:lim[1]]
+        #x = d['x'][lim[0]:lim[1]]
+        #y = d['y'][lim[0]:lim[1]]
         
-        if len(x)!=len(y):
-            y_new=[]
-            for i in range(0,len(x)):
-                y_new.append(np.array([y[i*3],y[i*3+1],y[i*3+2]]))
-            y = np.array(y_new)        
-        
-        upperlimit=len(x)
-        for i in range(1,len(x)):
-            if x[i]<x[i-1]:
-                upperlimit=i
-                break
-        return x[0:upperlimit],y[0:upperlimit]
+        if status==True:
+            if len(x)!=len(y):
+                y_new=[]
+                for i in range(0,len(x)):
+                    y_new.append(np.array([y[i*3],y[i*3+1],y[i*3+2]]))
+                y = np.array(y_new)        
+            
+            upperlimit=len(x)
+            for i in range(1,len(x)):
+                if x[i]<x[i-1]:
+                    upperlimit=i
+                    break
+            return x[0:upperlimit],y[0:upperlimit]
+
+        elif status==False:
+            x = xref[lim[0]:lim[-1]]
+            y = np.array([np.nan]*len(x))
+            return x,y
+
 
     def get_FOV(pl):
         x,y = pl['beam_inc_tele_frame mean']
@@ -59,11 +79,29 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
         
         return I0*((w0/w)**2)*(wfe.D**2)*(np.pi/4.0)
     
+    length = len(wfe.t_all)
+    if lim[1]<0:
+        lim[1]=length-lim[1]
+
     if read_folder==False:
         if ret==False:
             raise ValueError
     else:
         ret = NOISE_LISA.functions.read(direct=read_folder)
+
+    class BreakIt(Exception): pass
+    try:
+        for k1 in ret.keys():
+            for k2 in ret[k1].keys():
+                for k3 in ret[k1][k2].keys():
+                    for k4 in ret[k1][k2][k3].keys():
+                        for k5 in ret[k1][k2][k3][k4]:
+                            xref = ret[k1][k2][k3][k4][k5]['x']
+                            print(k5)
+                            raise BreakIt
+    except BreakIt:
+        pass
+
 
     ret1 = get_output(ret,methods1,SC,side)
     ret2 = get_output(ret,methods2,SC,side)
@@ -71,12 +109,13 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     pl1 = {}
     pl2 = {}
     for m in ret1.keys():
-        x1,y1 = get_values(ret1,m,SC,side)
-        x2,y2 = get_values(ret2,m,SC,side)
+        x1,y1 = get_values(wfe,ret1,m,SC,side,xref,lim=lim)
+        x2,y2 = get_values(wfe,ret2,m,SC,side,xref,lim=lim)
         pl1[m] = x1,y1
         pl2[m] = x2,y2
-    pl1 = get_FOV(pl1)
-    pl2 = get_FOV(pl2)
+    if 'FOV_calc mean' in meas_plot:
+        pl1 = get_FOV(pl1)
+        pl2 = get_FOV(pl2)
 
     meas = pl1.keys()
     meas.sort()
@@ -84,7 +123,11 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     ref={}
     ref['angx_tot mean'] = lambda t: 0
     ref['angy_tot mean'] = lambda t: 0
-    ref['piston mean'] = lambda t: np.linalg.norm(wfe.data.u_l_func_tot(1,t))
+    if side=='l':
+        ref['piston mean'] = lambda t: np.linalg.norm(wfe.data.u_l_func_tot(SC,t))
+    elif side=='r':
+        ref['piston mean'] = lambda t: np.linalg.norm(wfe.data.u_r_func_tot(SC,t))
+
     ref['R mean'] = ref['piston mean']
     #ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(1,t)
     ref['power mean'] = lambda t: max_power(wfe,t)
