@@ -156,11 +156,11 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
                         xy = ax_calc.lines[l]._xy
                         for k in xy:
                             writefile.write(str(k[0])+';'+str(k[1])+'\n')
-        elif type(m)==tuple and type(m[3])==dict:
+        elif type(m)==tuple and type(m[4])==dict:
             for out in m[0:-2]:
                 writefile.write(out+'\n')
             for k in sorted(m[-1].keys()):
-                writefile.write(m[2]+' '+k+'\n')
+                writefile.write(m[3]+' '+k+'\n')
                 for SC in sorted(m[-1][k].keys()):
                     for side in sorted(m[-1][k][SC].keys()):
                         if side=='l':
@@ -232,21 +232,25 @@ def read(filename='',direct=''):
                     iteration = rdln(line.split(':: ')[-1])
                     if iteration not in ret[key0][key1].keys():
                         ret[key0][key1][iteration] = {}
+                elif 'Option' in line:
+                    option = rdln(line.split(':: ')[-1])
+                    if option not in ret[key0][key1][iteration].keys():
+                        ret[key0][key1][iteration][option]={}
                 elif 'ax_title' in line:
                     key2 = rdln(line.split(':: ')[-1])
-                    if key2 not in ret[key0][key1][iteration].keys():
-                        ret[key0][key1][iteration][key2]={}
+                    if key2 not in ret[key0][key1][iteration][option].keys():
+                        ret[key0][key1][iteration][option][key2]={}
                 elif 'Measurement' in line:
                     key2 = rdln(line.split(':: ')[-1])
-                    if key2 not in ret[key0][key1][iteration].keys():
-                        ret[key0][key1][iteration][key2]={}
+                    if key2 not in ret[key0][key1][iteration][option].keys():
+                        ret[key0][key1][iteration][option][key2]={}
  
                 elif 'Label' in line:
                     key3 = rdln(line.split(':: ')[-1])
-                    if key3 not in ret[key0][key1][iteration][key2].keys():
-                        ret[key0][key1][iteration][key2][key3]={}
-                        ret[key0][key1][iteration][key2][key3]['x']=np.array([])
-                        ret[key0][key1][iteration][key2][key3]['y']=np.array([])
+                    if key3 not in ret[key0][key1][iteration][option][key2].keys():
+                        ret[key0][key1][iteration][option][key2][key3]={}
+                        ret[key0][key1][iteration][option][key2][key3]['x']=np.array([])
+                        ret[key0][key1][iteration][option][key2][key3]['y']=np.array([])
                 else:
                     try:
                         del x,y 
@@ -254,9 +258,9 @@ def read(filename='',direct=''):
                         pass
                     try:
                         [x,y] = line.split(';')
-                        ret[key0][key1][iteration][key2][key3]['x'] = np.append(ret[key0][key1][iteration][key2][key3]['x'],np.float64(rdln(x)))
+                        ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],np.float64(rdln(x)))
                         try:
-                            ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.float64(rdln(y)))
+                            ret[key0][key1][iteration][option][key2][key3]['y'] = np.append(ret[key0][key1][iteration][option][key2][key3]['y'],np.float64(rdln(y)))
                             value=True
                         except ValueError:
                             value=False
@@ -271,7 +275,7 @@ def read(filename='',direct=''):
                                 ynew_write.append(np.float64(ynew))
                             except:
                                 pass
-                        ret[key0][key1][iteration][key2][key3]['y'] = np.append(ret[key0][key1][iteration][key2][key3]['y'],np.array(ynew_write))
+                        ret[key0][key1][iteration][option][key2][key3]['y'] = np.append(ret[key0][key1][iteration][option][key2][key3]['y'],np.array(ynew_write))
 
 
             

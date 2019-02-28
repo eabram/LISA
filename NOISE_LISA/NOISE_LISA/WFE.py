@@ -79,6 +79,8 @@ class WFE():
 
         data_all = PAA_LISA.runfile.do_run(options,para)
 
+        print('Len data_all: '+str(len(data_all)))
+
         for k in range(0,len(data_all)/2):
             data = data_all[str(k+1)]
         self.t_vec = data.t_all
@@ -105,7 +107,7 @@ class WFE():
         return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront'): #...add more variables
         
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -125,35 +127,38 @@ class WFE():
             self.PAAM_control_method = PAAM_method
 
         aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0)
-        aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra)
-        out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra)
+        aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
+        out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra,option=option_PAAM)
         
         
         return out
 
     # Beam properties equations
     
-    def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False):
+    def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,option_tele='wavefront',option_PAAM='wavefront'):
         
         try:
             del self.aim
         except AttributeError:
             pass
 
-        aim0 = self.get_pointing(tele_method = 'no control',PAAM_method='no control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False)
+        aim0 = self.get_pointing(tele_method = 'no control',PAAM_method='no control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False,option_tele=option_tele,option_PAAM=option_PAAM)
         
-        aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True)
+        aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
 
         if iteration>0:
             for i in range(0,iteration):
                 aimold = aimnew
                 del aimnew
-                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True)
+                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
 
         
         aimnew.iteration = iteration
         self.aim = aimnew
         
+        self.iteration = iteration
+        self.aim.iteration = iteration
+
         return aimnew
 
 
@@ -414,15 +419,16 @@ class WFE():
                     #start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
 
             
-            n_beam = val['coor_start'][1]
-            n_tele = val['coor_end'][1]
-            target_pos = val['target_pos']
-            beam_send_coor = val['coor_start']
-            tele_rec_coor = val['coor_end']
+            n_beam = val['coor_start_beam'][1]
+            n_tele = val['coor_end_tele'][1]
+            target_pos_beam = val['target_pos_beam']
+            target_pos_tele = val['target_pos_tele']
+            beam_send_coor = val['coor_start_beam']
+            tele_rec_coor = val['coor_end_tele']
             target_direction = val['target_direction']
 
 
-            np.dot(n_beam,n_tele)
+            #np.dot(n_beam,n_tele)
 #            if side=='l':
 #                i_next = i_left
 #                tdel = self.data.L_rl_func_tot(i_self,t)
@@ -442,7 +448,7 @@ class WFE():
 #            tele_beam = LA.matmul(beam_send_coor,tele_rec)
 #            beam_beam = LA.matmul(beam_send_coor,beam_send)
 #            [zoff_0,yoff_0,xoff_0] = beam_beam + tele_beam
-            [zoff_0,yoff_0,xoff_0] = target_pos # Offset in beam send frame
+            [zoff_0,yoff_0,xoff_0] = target_pos_beam # Offset in beam send frame
 
 #            z0 = beam_beam[0]
 
@@ -452,7 +458,7 @@ class WFE():
             bd_receiving_frame = LA.matmul(tele_rec_coor,bd_original_frame)
             
             # In receiving tele frame
-            offset_tele_frame = LA.matmul(tele_rec_coor,beam_send_coor[1]*yoff_0+beam_send_coor[2]*xoff_0)
+            #offset_tele_frame = LA.matmul(tele_rec_coor,beam_send_coor[1]*yoff_0+beam_send_coor[2]*xoff_0)
             #beam_receiving_frame = LA.matmul(tele_rec_coor,LA.matmul(np.linalg.inv(beam_send_coor),bd_sending_frame))
 
             # Calculating tilt
@@ -513,8 +519,8 @@ class WFE():
         
         # Zernike polynomials
         #print(angx,angy,angxoff,angyoff)
-        angx_tot = angx+angxoff #..check if add or subtract
-        angy_tot = angy+angyoff
+        angx_tot = angxoff #..check if add or subtract
+        angy_tot = angyoff
         #print(angx_tot,angy_tot)
         
         if ret=='piston':
@@ -550,9 +556,11 @@ class WFE():
         elif ret=='r':
             return ((yoff_0**2)+(xoff_0**2))**0.5
         elif ret=='FOV':
+            vec = bd_receiving_frame
+            return np.arccos(-vec[0]/np.linalg.norm(vec))
             #wfront_direction = np.array([np.cos(-angy_tot)*np.cos(-angx_tot),np.sin(-angy_tot),np.sin(-angx_tot)])
             #return PAA_LISA.la().angle(direction,-target_pos)
-            return np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
+            #return np.arctan((((yoff_0**2)+(xoff_0**2))**0.5)/zoff_0)
             #return PAA_LISA.la().angle(direction,-wfront_direction)
         elif ret=='wfront_direction':
             wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])

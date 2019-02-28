@@ -114,10 +114,11 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
 
     for m in meas:
         title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
+        option = 'Option :: tele_'+aim.tele_option+'__PAAM_'+aim.PAAM_option
         iteration = 'Iteration:: '+ str(aim.iteration)
         measurement = 'Measurement:: '+m
 
-        ret_all[m] = title, iteration, measurement, ret_sort[m]
+        ret_all[m] = title, iteration, option, measurement, ret_sort[m]
 
     if len_short==True:
         return ret_all[meas[0]]

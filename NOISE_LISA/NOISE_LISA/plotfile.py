@@ -6,23 +6,28 @@ import calc_values
 import PAA_LISA
 import NOISE_LISA
 
+from matplotlib.font_manager import FontProperties
+
 def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',methods1=['no control','no control'],methods2=['full control','full control'],lim=[3,-3]):
-    def get_output(ret,methods,SC,side,iteration=0):
-        return ret[methods[0]][methods[1]][str(iteration)]
+    def get_output(ret,methods,SC,side):
+        return ret[methods[0]][methods[1]][str(methods[2])][methods[3]]
 
     def get_values(wfe,ret,meas,i,side,xref,lim='Default'):
         if lim=='Default':
             lim=[0,len(wfe.t_all)]
-        x=[]
-        y=[]
         status=True
         try:
             if side=='l':
                 d = ret[meas]['SC'+str(i)+', left']
             elif side =='r':
                 d = ret[meas]['SC'+str(i)+', right']
-            x = d['x'][lim[0]:lim[1]]
-            y = d['y'][lim[0]:lim[1]]
+            x_all = d['x']
+            y_all = d['y']
+            x = x_all[lim[0]:lim[1]]
+            if len(x_all)*3==len(y_all):
+                y = y_all[lim[0]*3:(lim[1]-lim[0])*3+lim[0]*3]
+            else:
+                y = y_all[lim[0]:lim[1]]
         except KeyError, e:
             print(meas)
             print(e)
@@ -37,18 +42,23 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
         #y = d['y'][lim[0]:lim[1]]
         
         if status==True:
-            if len(x)!=len(y):
-                y_new=[]
-                for i in range(0,len(x)):
-                    y_new.append(np.array([y[i*3],y[i*3+1],y[i*3+2]]))
-                y = np.array(y_new)        
-            
-            upperlimit=len(x)
-            for i in range(1,len(x)):
-                if x[i]<x[i-1]:
-                    upperlimit=i
-                    break
-            return x[0:upperlimit],y[0:upperlimit]
+            try:
+                if len(x)!=len(y):
+                    y_new=[]
+                    for i in range(0,len(x)):
+                        y_new.append(np.array([y[i*3],y[i*3+1],y[i*3+2]]))
+                    y = np.array(y_new)        
+                
+                upperlimit=len(x)
+                for i in range(1,len(x)):
+                    if x[i]<x[i-1]:
+                        upperlimit=i
+                        break
+                return x[0:upperlimit],y[0:upperlimit]
+            except IndexError:
+                print(len(x),len(y))
+                print(x)
+                print(y)
 
         elif status==False:
             x = xref[lim[0]:lim[-1]]
@@ -56,29 +66,47 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
             return x,y
 
 
-    def get_FOV(pl):
-        x,y = pl['beam_inc_tele_frame mean']
-        x2,y2 = pl['R_vec_tele_rec mean']
-        FOV = []
-        R=[]
-        for i in range(0,len(x)):
-            FOV.append(np.arccos(-y[i][0]/np.linalg.norm(y[i])))
-        for i in range(0,len(x2)):
-            R.append(np.linalg.norm(y2[i]))
+#    def get_FOV(pl):
+#        x,y = pl['beam_inc_tele_frame mean']
+#        x2,y2 = pl['R_vec_tele_rec mean']
+#        FOV = []
+#        R=[]
+#        for i in range(0,len(x)):
+#            FOV.append(np.arccos(-y[i][0]/np.linalg.norm(y[i])))
+#        for i in range(0,len(x2)):
+#            R.append(np.linalg.norm(y2[i]))
+#        
+#        pl['FOV_calc mean'] = x,np.array(FOV)
+#        pl['R mean'] = x,np.array(R)
+#        return pl
         
-        pl['FOV_calc mean'] = x,np.array(FOV)
-        pl['R mean'] = x,np.array(R)
-        return pl
-        
-    def max_power(wfe,t):
+    def max_power(wfe,SC,t,side):
         i=1
         I0 = wfe.P_L
-        z = np.linalg.norm(wfe.data.u_l_func_tot(i,t))
-        w = wfe.w(z)
-        w0 = wfe.w0_laser
-        
-        return I0*((w0/w)**2)*(wfe.D**2)*(np.pi/4.0)
-    
+        if side=='l':
+            z = np.linalg.norm(wfe.data.u_l_func_tot(i,t))
+        elif side=='r':
+            z = np.linalg.norm(wfe.data.u_r_func_tot(i,t))
+        A = (wfe.D**2)*(np.pi/4.0)
+        return ((1.0/(np.float64(wfe.labda)*z))*A)**2
+        #w = wfe.w(z)
+        #w0 = wfe.w0_laser
+        #return I0*((w0/w)**2)
+
+    # Set default iterations and pointing options
+    if len(methods1)==2:
+        methods1.append(0)
+    if len(methods2)==2:
+        methods2.append(0)
+    if len(methods1)==3:
+        methods1.append('tele_wavefront__PAAM_wavefront')
+    if len(methods2)==3:
+        methods2.append('tele_wavefront__PAAM_wavefront')
+
+
+
+
+
     length = len(wfe.t_all)
     if lim[1]<0:
         lim[1]=length-lim[1]
@@ -94,11 +122,14 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
         for k1 in ret.keys():
             for k2 in ret[k1].keys():
                 for k3 in ret[k1][k2].keys():
-                    for k4 in ret[k1][k2][k3].keys():
-                        for k5 in ret[k1][k2][k3][k4]:
-                            xref = ret[k1][k2][k3][k4][k5]['x']
-                            print(k5)
-                            raise BreakIt
+                    for k31 in ret[k1][k2][k3].keys():
+                        for k4 in ret[k1][k2][k3][k31].keys():
+                            if meas_plot=='all':
+                                meas_plot=ret[k1][k2][k3][k31].keys()
+                            for k5 in ret[k1][k2][k3][k31][k4]:
+                                xref = ret[k1][k2][k3][k31][k4][k5]['x']
+                                print(k5)
+                                raise BreakIt
     except BreakIt:
         pass
 
@@ -113,9 +144,9 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
         x2,y2 = get_values(wfe,ret2,m,SC,side,xref,lim=lim)
         pl1[m] = x1,y1
         pl2[m] = x2,y2
-    if 'FOV_calc mean' in meas_plot:
-        pl1 = get_FOV(pl1)
-        pl2 = get_FOV(pl2)
+#    if 'FOV_calc mean' in meas_plot:
+#        pl1 = get_FOV(pl1)
+#        pl2 = get_FOV(pl2)
 
     meas = pl1.keys()
     meas.sort()
@@ -129,15 +160,20 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
         ref['piston mean'] = lambda t: np.linalg.norm(wfe.data.u_r_func_tot(SC,t))
 
     ref['R mean'] = ref['piston mean']
+    ref['R_vec_tele_rec mean'] = ref['piston mean']
     #ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(1,t)
-    ref['power mean'] = lambda t: max_power(wfe,t)
+    ref['power mean'] = lambda t: max_power(wfe,SC,t,side)
     ref['FOV mean'] = lambda t: wfe.FOV
-    ref['FOV_calc mean'] = lambda t: wfe.FOV
     if side=='l':
         scale=-1
     elif side=='r':
         scale=1
     ref['tele_ang mean'] = lambda t: np.radians(30)*scale
+    if methods1[1]=='full control' and methods2[1]=='full control':
+        if side=='l':
+            ref['PAAM_ang mean'] = lambda t: -wfe.data.PAA_func['l_out'](SC,t)
+        elif side=='r':
+            ref['PAAM_ang mean'] = lambda t: -wfe.data.PAA_func['r_out'](SC,t)
 
     for m in meas:
         if m not in ref.keys():
@@ -147,61 +183,75 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     for m in meas:
         if 'ang' in m or 'FOV' in m:
             unit[m] = ['Angle (microrad)',1e6]
-        elif 'piston' in m or 'r ' in m  or 'z_extra' in m or 'zoff' in m or 'R mean'==m:
+        elif 'piston' in m or 'r ' == m[0:2]  or 'z_extra' in m or 'zoff' in m or 'R mean'==m:
             unit[m] = ['Distance (km)',0.001]
         elif 'power' in m:
             unit[m]=['Power (W)',1]
         else:
             unit[m]=['AU',1]
 
-    if meas_plot=='all':
-        meas_plot=meas
-
-    f_all=[]
-    label1= 'tele: '+methods1[0]+', PAAM: '+methods1[1]
-    label2= 'tele: '+methods2[0]+', PAAM: '+methods2[1]
+    f_all=[] 
+    label1= 'tele: '+methods1[0]+', '+ methods1[3].split('_')[1]+', PAAM: '+methods1[1]+', '+ methods1[3].split('_')[4]+'\n'+'Iteration: '+str(methods1[2])
+    label2= 'tele: '+methods2[0]+', '+ methods2[3].split('_')[1]+', PAAM: '+methods2[1]+', '+ methods2[3].split('_')[4]+'\n'+'Iteration: '+str(methods2[2])
     lim=[3,-3]
     for m in range(0,len(meas_plot)):
-        x1,y1 = pl1[meas_plot[m]]
-        x2,y2 = pl2[meas_plot[m]]
-        x1_sec = x1[lim[0]:lim[1]]
-        x1 = x1_sec/wfe.day2sec
-        y1 = y1[lim[0]:lim[1]]*unit[meas_plot[m]][1]
-        x2 = x2[lim[0]:lim[1]]/wfe.day2sec
-        y2 = y2[lim[0]:lim[1]]*unit[meas_plot[m]][1]
+        print(meas_plot[m])
+        print(methods1,methods2)
+        try:
+            x1,y1 = pl1[meas_plot[m]]
+            x2,y2 = pl2[meas_plot[m]]
+            x1_sec = x1[lim[0]:lim[1]]
+            x1 = x1_sec/wfe.day2sec
+            y1 = y1[lim[0]:lim[1]]*unit[meas_plot[m]][1]
+            try:
+                y1[0][0]
+                y1 = np.array([np.linalg.norm(i) for i in y1])
+                title_add='|'
+            except IndexError:
+                title_add=''
+                pass
 
-        f,ax = plt.subplots(2,2,figsize=(10,10))
-        plt.subplots_adjust(hspace=0.6,wspace=0.6)
-        f.suptitle(meas_plot[m])
-        ax[0,0].plot(x1,y1)
-        ax[0,0].set_title(label1,pad=20)
+            x2 = x2[lim[0]:lim[1]]/wfe.day2sec
+            y2 = y2[lim[0]:lim[1]]*unit[meas_plot[m]][1]
+            try:
+                y2[0][0]
+                y2 = np.array([np.linalg.norm(i) for i in y2])
+            except IndexError:
+                pass
 
-        ax[0,1].plot(x2,y2)
-        ax[0,1].set_title(label2,pad=20)
+            f,ax = plt.subplots(2,2,figsize=(10,12))
+            plt.subplots_adjust(hspace=0.3,wspace=0.6)
+            f.suptitle(title_add+meas_plot[m]+title_add)
+            ax[0,0].plot(x1,y1)
+            ax[0,0].set_title(label1,pad=20)
 
-        y_ref = np.array([ref[meas_plot[m]](t)*unit[meas_plot[m]][1] for t in x1_sec])
+            ax[0,1].plot(x2,y2)
+            ax[0,1].set_title(label2,pad=20)
 
-        ax[1,0].plot(x1,y1-y_ref,label=label1)
-        ax[1,0].plot(x2,y2-y_ref,label=label2)
-        ax[1,0].legend(loc='best')
-        ax[1,0].set_title('Relative difference w.r.t. optimal/standard',pad=20)
+            y_ref = np.array([ref[meas_plot[m]](t)*unit[meas_plot[m]][1] for t in x1_sec])
+            ax[1,0].plot(x1,y1-y_ref,label=label1)
+            ax[1,0].plot(x2,y2-y_ref,label=label2)
+            ax[1,0].legend(loc='best',bbox_to_anchor=(1, -0.12))
+            ax[1,0].set_title('Relative difference w.r.t. optimal/standard',pad=20)
 
-        ax[1,1].plot(x1,y1,label=label1)
-        ax[1,1].plot(x2,y2,label=label2)
-        ax[1,1].plot(x1,y_ref,color='r',linestyle='--')
-        ax[1,1].legend(loc='best')
-        ax[1,1].set_title('Overview',pad=20)
+            ax[1,1].plot(x1,y1,label=label1)
+            ax[1,1].plot(x2,y2,label=label2)
+            ax[1,1].plot(x1,y_ref,color='r',linestyle='--')
+            ax[1,1].legend(loc='best',bbox_to_anchor=(1, -0.12))
+            ax[1,1].set_title('Overview',pad=20)
 
-        for i in range(0,len(ax)):
-            for j in range(0,len(ax[i])):
-                ax[i,j].set_xlabel('Time (days)')
-                ax[i,j].set_ylabel(unit[meas_plot[m]][0])
+            for i in range(0,len(ax)):
+                for j in range(0,len(ax[i])):
+                    ax[i,j].set_xlabel('Time (days)')
+                    ax[i,j].set_ylabel(unit[meas_plot[m]][0])
 
 
-        f_all.append([meas_plot[m],label1,label2,f])
-        plt.close('all')
-
-    return f_all,ret1,ret2,meas_plot
+            f_all.append([meas_plot[m],label1,label2,f])
+            plt.close('all')
+        except KeyError:
+            pass
+    #if ready==True:
+    return f_all,ret1,ret2,meas_plot,pl1,pl2
 
 class plot_func():
     def __init__(self,wfe,**kwargs):
