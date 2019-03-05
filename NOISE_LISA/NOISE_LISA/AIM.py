@@ -297,7 +297,7 @@ class AIM():
             elif component=='PAAM':
                 angy_solve = lambda PAAM_ang: pack.functions.get_wavefront_parallel(self.wfe,self.aim_old,i_self,t,side,PAAM_ang,'angy',mode='opposite')
                 try:
-                    angy =  scipy.optimize.brentq(angy_solve,-1e-2,1e-2)
+                    angy =  scipy.optimize.brentq(angy_solve,-1e-1,1e-1)
                     #angy =  scipy.optimize.fmin(angy_solve,0,disp=False)[0]
                     #angy = scipy.optimize.minimize(angy_solve,0)['fun']
                 except ValueError:
