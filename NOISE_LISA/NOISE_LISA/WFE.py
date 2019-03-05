@@ -108,7 +108,7 @@ class WFE():
         return 0
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront'): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0): #...add more variables
         
         if tele_ang_extra==True:
             tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -127,7 +127,7 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0)
+        aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0,count=count)
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
         out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra,option=option_PAAM)
         
@@ -146,12 +146,13 @@ class WFE():
         aim0 = self.get_pointing(tele_method = 'no control',PAAM_method='no control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False,option_tele=option_tele,option_PAAM=option_PAAM)
         
         aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
+        aimnew.iteration = 0
 
         if iteration>0:
             for i in range(0,iteration):
                 aimold = aimnew
                 del aimnew
-                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
+                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM,count=i+1)
 
         
         aimnew.iteration = iteration
@@ -228,7 +229,7 @@ class WFE():
                     return [z+dz_sol,dz_sol]
             
         except RuntimeError:
-            print(x,y,z)
+            #print(x,y,z)
             if ret=='piston':
                 return np.nan
             elif ret=='all':
@@ -474,21 +475,27 @@ class WFE():
             [piston,z_extra] = self.z_solve(xoff_0,yoff_0,zoff_0,ret='all')
         except:
             [piston,z_extra] = [np.nan,np.nan]
-            print(xoff_0,yoff_0,zoff_0)
+            ##print(xoff_0,yoff_0,zoff_0)
          
         R = self.R(piston)
         R_vec_beam_send = np.array([(R**2 - xoff_0**2 - yoff_0**2)**0.5,yoff_0,xoff_0])
         R_vec_tele_rec = -LA.matmul(coor_end_tele,LA.matmul(np.linalg.inv(coor_start_beam),R_vec_beam_send))
+        
+        if type(ret)!=list and ret=='all_val' or '_func_' in ret:
+            # Tilt by function
+            if side=='l':
+                tdel = self.data.L_rl_func_tot(i_self,t)
+                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite')
+                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite')
+                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='self')
+                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='self')
 
-        # Tilt by function
-        if side=='l':
-            tdel = self.data.L_rl_func_tot(i_self,t)
-            angx_func_opp = NOISE_LISA.functions.get_wavefront_parallel(self,self.aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite')
-            angy_func_opp = NOISE_LISA.functions.get_wavefront_parallel(self,self.aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite')
-        elif side=='r':
-            tdel = self.data.L_rr_func_tot(i_self,t)
-            angx_func_opp = NOISE_LISA.functions.get_wavefront_parallel(self,self.aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='opposite')
-            angy_func_opp = NOISE_LISA.functions.get_wavefront_parallel(self,self.aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite')
+            elif side=='r':
+                tdel = self.data.L_rr_func_tot(i_self,t)
+                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='opposite')
+                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite')
+                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='self')
+                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='self')
 
         # Tilt by offset
         angx_off = np.arctan(abs(R_vec_tele_rec[2]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[2])

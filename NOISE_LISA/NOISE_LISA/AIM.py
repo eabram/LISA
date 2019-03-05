@@ -34,7 +34,10 @@ class AIM():
                 print('Please select init or previous aim iteration')
                 raise ValueError
 
-
+        self.count=kwargs.pop('count',0)
+        print('')
+        print('Iteration count: '+str(self.count))
+        print('')
         self.noise = pack.Noise(wfe=wfe)
         self.PAAM_method = wfe.PAAM_control_method
         self.tele_method = wfe.tele_control
@@ -295,6 +298,8 @@ class AIM():
                 angy_solve = lambda PAAM_ang: pack.functions.get_wavefront_parallel(self.wfe,self.aim_old,i_self,t,side,PAAM_ang,'angy',mode='opposite')
                 try:
                     angy =  scipy.optimize.brentq(angy_solve,-1e-2,1e-2)
+                    #angy =  scipy.optimize.fmin(angy_solve,0,disp=False)[0]
+                    #angy = scipy.optimize.minimize(angy_solve,0)['fun']
                 except ValueError:
                     angy=np.nan
                 delay=False
@@ -615,17 +620,17 @@ class AIM():
 
         print('PAAM pointing strategy: '+option)
         # Obtains functions for optimal telescope pointing vector
-        delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
-        delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
+        #if option!='wavefront':
+        #    delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
+        #    delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
 
         
         if option=='wavefront':
             #ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='PAAM',option=option)[1]
             #ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='PAAM',option=option)[1]
-            ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
-            ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
-            print(ang_PAAM_extra_l)
-
+            if self.count>0:
+                ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
+                ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
 
         elif option=='center':
             ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t,'r',component='PAAM',option=option)[1]
@@ -645,8 +650,13 @@ class AIM():
 
         
         if option=='wavefront':
-            self.PAAM_ang_l_fc = lambda i,t: ang_PAAM_extra_l(i,t)
-            self.PAAM_ang_r_fc = lambda i,t: ang_PAAM_extra_r(i,t)
+            if self.count>0:
+                self.PAAM_ang_l_fc = lambda i,t: ang_PAAM_extra_l(i,t)
+                self.PAAM_ang_r_fc = lambda i,t: ang_PAAM_extra_r(i,t)
+            else:
+                self.PAAM_ang_l_fc = self.aim_old.beam_l_ang
+                self.PAAM_ang_r_fc = self.aim_old.beam_r_ang
+
         elif option=='center':
             self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t)
             self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)+ang_PAAM_extra_r(i,t)

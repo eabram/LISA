@@ -331,9 +331,8 @@ def get_extra_ang_mean(wfe,component):
 
     return [offset_l,offset_r]
 
-def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite'):
+def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precision=0):
     [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
-    
     if mode=='opposite':
         if side=='l':
             tdel = wfe.data.L_sl_func_tot(i_self,t)
@@ -341,7 +340,6 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite'):
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
-
             tele_ang = aim.tele_l_ang(i_self,t+tdel0)
             coor_start = beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang)
             coor_end = aim.tele_r_coor(i_left,t+tdel)
@@ -358,7 +356,25 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite'):
             coor_end = aim.tele_l_coor(i_right,t+tdel)
             start = aim.tele_r_start(i_self,t+tdel0)
             end=aim.tele_l_start(i_right,t+tdel)
-    
+        [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
+        if precision==0:
+            R = zoff # Not precise
+        elif precision==1:
+            try:
+               [piston,z_extra] = wfe.z_solve(xoff,yoff,zoff,ret='all')
+            except:
+                [piston,z_extra] = [np.nan,np.nan]
+            R = wfe.R(piston)
+
+        R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
+        tele_vec = LA.matmul(coor_start,-coor_end[0])
+        angx_R = np.sign(R_vec[2])*abs(np.arctan(R_vec[2]/R_vec[0]))
+        angy_R = np.sign(R_vec[1])*abs(np.arctan(R_vec[1]/R_vec[0]))
+        angx_tele = np.sign(tele_vec[2])*abs(np.arctan(tele_vec[2]/tele_vec[0]))
+        angy_tele = np.sign(tele_vec[1])*abs(np.arctan(tele_vec[1]/tele_vec[0]))
+        angx = (angx_tele-angx_R)
+        angy = (angy_tele-angy_R)
+ 
     elif mode=='self':
         if side=='l':
             tdel = wfe.data.L_rl_func_tot(i_self,t)
@@ -384,22 +400,27 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite'):
             start = aim.tele_l_start(i_right,t-tdel)
             end = aim.tele_r_start(i_self,t-tdel0)
             
+        [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
+        if precision==0:
+            R = zoff # Not precise
+        elif precision==1:
+            try:
+               [piston,z_extra] = wfe.z_solve(xoff,yoff,zoff,ret='all')
+            except:
+                [piston,z_extra] = [np.nan,np.nan]
+            R = wfe.R(piston)
 
-    [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
-    R = zoff # Not precise
-    R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
-    tele_vec = LA.matmul(coor_start,-coor_end[0])
-    angx_R = np.sign(R_vec[2])*abs(np.arctan(R_vec[2]/R_vec[0]))
-    angy_R = np.sign(R_vec[1])*abs(np.arctan(R_vec[1]/R_vec[0]))
-    angx_tele = np.sign(tele_vec[2])*abs(np.arctan(tele_vec[2]/tele_vec[0]))
-    angy_tele = np.sign(tele_vec[1])*abs(np.arctan(tele_vec[1]/tele_vec[0]))
-    angx = (angx_tele-angx_R)
-    angy = (angy_tele-angy_R)
+        R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
+        R_vec_tele = LA.matmul(coor_end,-LA.matmul(np.linalg.inv(coor_start),R_vec))
+        angx = np.arctan(abs(R_vec_tele[2]/R_vec_tele[0]))*np.sign(R_vec_tele[2])
+        angy = np.arctan(abs(R_vec_tele[1]/R_vec_tele[0]))*np.sign(R_vec_tele[1])
 
     if ret=='angy':
         return angy
     elif ret=='angx':
         return angx
+    elif ret=='tilt':
+        return (angx**2+angy**2)**0.5
 
 
 
