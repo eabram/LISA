@@ -485,17 +485,17 @@ class WFE():
             # Tilt by function
             if side=='l':
                 tdel = self.data.L_rl_func_tot(i_self,t)
-                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite')
-                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite')
-                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='self')
-                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='self')
+                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite',ksi=ksi)
+                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite',ksi=ksi)
+                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angx',mode='self',ksi=ksi)
+                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',self.aim.beam_r_ang(i_left,t-tdel),'angy',mode='self',ksi=ksi)
 
             elif side=='r':
                 tdel = self.data.L_rr_func_tot(i_self,t)
-                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='opposite')
-                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite')
-                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='self')
-                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='self')
+                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='opposite',ksi=ksi)
+                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite',ksi=ksi)
+                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angx',mode='self',ksi=ksi)
+                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',self.aim.beam_l_ang(i_right,t-tdel),'angy',mode='self',ksi=ksi)
 
         # Tilt by offset
         angx_off = np.arctan(abs(R_vec_tele_rec[2]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[2])

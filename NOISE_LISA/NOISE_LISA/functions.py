@@ -331,7 +331,7 @@ def get_extra_ang_mean(wfe,component):
 
     return [offset_l,offset_r]
 
-def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precision=0):
+def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precision=0,ksi=[0,0]):
     [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
     if mode=='opposite':
         if side=='l':
@@ -344,7 +344,8 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             coor_start = beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang)
             coor_end = aim.tele_r_coor(i_left,t+tdel)
             start=aim.tele_l_start(i_self,t+tdel0)
-            end=aim.tele_r_start(i_left,t+tdel)
+            end=aim.tele_r_start(i_left,t+tdel)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+
         elif side=='r':
             tdel=wfe.data.L_sr_func_tot(i_self,t)
             if wfe.data.calc_method=='Waluschka':
@@ -355,7 +356,8 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             coor_start =  beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang)
             coor_end = aim.tele_l_coor(i_right,t+tdel)
             start = aim.tele_r_start(i_self,t+tdel0)
-            end=aim.tele_l_start(i_right,t+tdel)
+            end=aim.tele_l_start(i_right,t+tdel)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+
         [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
         if precision==0:
             R = zoff # Not precise
@@ -386,7 +388,8 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
             coor_end = aim.tele_l_coor(i_self,t)
             start = aim.tele_r_start(i_left,t-tdel)
-            end = aim.tele_l_start(i_self,t-tdel0)
+            end = aim.tele_l_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+
         
         elif side=='r':
             tdel = wfe.data.L_rr_func_tot(i_self,t)
@@ -397,8 +400,8 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             tele_ang = aim.tele_l_ang(i_right,t-tdel)
             coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
             coor_end = aim.tele_r_coor(i_self,t)
-            start = aim.tele_l_start(i_right,t-tdel)
-            end = aim.tele_r_start(i_self,t-tdel0)
+            start = aim.tele_l_start(i_right,t-tdel)+coor_start[1]*ksi[1]+coor_start[2]*ksi[0]
+            end = aim.tele_r_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
             
         [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
         if precision==0:
