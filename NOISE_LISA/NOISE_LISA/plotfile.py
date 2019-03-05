@@ -56,8 +56,10 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
                         break
                 return x[0:upperlimit],y[0:upperlimit]
             except IndexError:
+                print(meas)
                 print(len(x),len(y))
                 print(x)
+                print(d)
                 print(y)
 
         elif status==False:
@@ -109,7 +111,7 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     length = len(wfe.t_all)
     if lim[1]<0:
-        lim[1]=length-lim[1]
+        lim[1]=length+lim[1]
 
     if read_folder==False:
         if ret==False:
@@ -139,7 +141,10 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     pl1 = {}
     pl2 = {}
-    for m in ret1.keys():
+    for m in meas_plot:
+        #print('Check')
+        #print(wfe,ret1)
+        #print(m,SC,side,xref,lim)
         x1,y1 = get_values(wfe,ret1,m,SC,side,xref,lim=lim)
         x2,y2 = get_values(wfe,ret2,m,SC,side,xref,lim=lim)
         pl1[m] = x1,y1

@@ -512,7 +512,7 @@ class WFE():
         FOV = np.arccos(-vec[0]/np.linalg.norm(vec))     
         wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])[0]
         tilt = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
-        beam_inc_tele_frame = bd_receiving_frame
+        beam_inc_tele_frame = bd_receiving_frame[0]
         if side=='l':
             PAAM_ang=aim.beam_l_ang(i_self,t)
             tele_ang=aim.tele_l_ang(i_self,t)
