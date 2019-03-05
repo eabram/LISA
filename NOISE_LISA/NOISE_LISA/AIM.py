@@ -193,36 +193,68 @@ class AIM():
             return [f_l,f_r]
         elif ret=='val':
             return [y_l_ang_all,y_r_ang_all]
+    
+    def get_wavefront_parallel(self,i,t,side):
+        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
+
 
     def get_aim_accuracy(self,i,t,side,component=False,option='wavefront'):
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
         if option=='center':
-            if side=='l':
-                tdel=self.wfe.data.L_sl_func_tot(i_self,t)
-                if self.wfe.data.calc_method=='Waluschka':
-                    tdel0=tdel
-                elif sel.wfe.data.calc_method=='Abram':
-                    tdel0=0
-                end = self.aim_old.tele_r_start(i_left,t+tdel)
-                start = self.aim_old.tele_l_start(i_self,t+tdel0)
-                coor_start = self.aim_old.beam_l_coor(i_self,t)
-            elif side=='r':
-                tdel = self.wfe.data.L_sr_func_tot(i_self,t)
-                if self.wfe.data.calc_method=='Waluschka':
-                    tdel0=tdel
-                elif sel.wfe.data.calc_method=='Abram':
-                    tdel0=0
-                end = self.aim_old.tele_l_start(i_right,t+tdel)
-                start = self.aim_old.tele_r_start(i_self,t+tdel0)
-                coor_start = self.aim_old.beam_r_coor(i_self,t)
+            if component=='tele':
+                if side=='l':
+                    tdel=self.wfe.data.L_rl_func_tot(i_self,t)
+                    if self.wfe.data.calc_method=='Waluschka':
+                        tdel0=tdel
+                    elif self.wfe.data.calc_method=='Abram':
+                        tdel0=0
+                    end = self.aim_old.tele_l_start(i_self,t-tdel0)
+                    start = self.aim_old.tele_r_start(i_left,t-tdel)
+                    coor_start = self.aim_old.beam_r_coor(i_left,t-tdel)
+                    coor_end = self.aim_old.tele_l_coor(i_self,t)
+                    #vec = self.wfe.data.v_l_func_tot(i,t)
+                elif side=='r':
+                    tdel = self.wfe.data.L_rr_func_tot(i_self,t)
+                    if self.wfe.data.calc_method=='Waluschka':
+                        tdel0=tdel
+                    elif self.wfe.data.calc_method=='Abram':
+                        tdel0=0
+                    end = self.aim_old.tele_r_start(i_self,t-tdel0)
+                    start = self.aim_old.tele_l_start(i_right,t-tdel)
+                    coor_start = self.aim_old.beam_l_coor(i_right,t-tdel)
+                    coor_end = self.aim_old.tele_r_coor(i_self,t)
+                    #vec = self.wfe.data.v_r_func_tot(i,t)
+                
+                [z,y,x] = LA.matmul(coor_start,end-start)
+                angx = np.sign(x)*abs(np.arctan(x/z))
+                angy = np.sign(y)*abs(np.arctan(y/z))
+                delay = tdel
+            elif component=='PAAM':        
+                if side=='l':
+                    tdel = self.wfe.data.L_sr_func_tot(i_left,t)
+                    if self.wfe.data.calc_method=='Waluschka':
+                        tdel0=tdel
+                    elif self.wfe.data.calc_method=='Abram':
+                        tdel0=0
+                    start = self.aim_old.tele_r_start(i_left,t+tdel0)
+                    end = self.aim_old.tele_l_start(i_self,t+tdel)
+                    coor_start = self.aim_old.beam_r_coor(i_left,t)
+                elif side=='r':
+                    tdel = self.wfe.data.L_sl_func_tot(i_right,t)
+                    if self.wfe.data.calc_method=='Waluschka':
+                        tdel0=tdel
+                    elif self.wfe.data.calc_method=='Abram':
+                        tdel0=0
+                    start = self.aim_old.tele_l_start(i_right,t+tdel0)
+                    end = self.aim_old.tele_r_start(i_self,t+tdel)
+                    coor_start = self.aim_old.beam_l_coor(i_right,t)
+                 
+                [z,y,x] = LA.matmul(coor_start,end-start)
+                angx = np.sign(x)*abs(np.arctan(x/z))
+                angy = np.sign(y)*abs(np.arctan(y/z))
+                delay = tdel
 
-            [z,y,x] = LA.matmul(coor_start,end-start)
- 
-            angx = np.sign(x)*abs(np.arctan(x/z))
-            angy = np.sign(y)*abs(np.arctan(y/z))
-            delay = tdel
-
-            return [angx,angy,delay]
+            return [angx,-angy,delay]
         
         elif option=='wavefront':
             if component=='tele':
@@ -230,73 +262,43 @@ class AIM():
                     tdel = self.wfe.data.L_rl_func_tot(i_self,t)
                     if self.wfe.data.calc_method=='Waluschka':
                         tdel0=tdel
-                    elif sel.wfe.data.calc_method=='Abram':
+                    elif self.wfe.data.calc_method=='Abram':
                         tdel0=0
-                    end = self.aim_old.tele_l_start(i_self,t-tdel0)
-                    start = self.aim_old.tele_r_start(i_left,t-tdel)
-                    direct = self.aim_old.beam_r_direction(i_left,t-tdel)
-                    coor_start = self.aim_old.beam_r_coor(i_left,t-tdel)
+                    coor_start = self.aim_old.tele_r_coor(i_left,t-tdel)
                     coor_end = self.aim_old.tele_l_coor(i_self,t)
+                    direct = self.aim_old.beam_r_direction(i_left,t-tdel)
+                    start = self.aim_old.tele_r_start(i_left,t-tdel)
+                    end = self.aim_old.tele_l_start(i_self,t-tdel0)
                 elif side=='r':
                     tdel = self.wfe.data.L_rr_func_tot(i_self,t)
                     if self.wfe.data.calc_method=='Waluschka':
                         tdel0=tdel
-                    elif sel.wfe.data.calc_method=='Abram':
+                    elif self.wfe.data.calc_method=='Abram':
                         tdel0=0
-                    end = self.aim_old.tele_r_start(i_self,t-tdel0)
-                    start = self.aim_old.tele_l_start(i_right,t-tdel)
-                    direct = self.aim_old.beam_l_direction(i_right,t-tdel)
-                    coor_start = self.aim_old.beam_l_coor(i_right,t-tdel)
+                    coor_start = self.aim_old.tele_l_coor(i_right,t-tdel)
                     coor_end = self.aim_old.tele_r_coor(i_self,t)
+                    direct = self.aim_old.beam_l_direction(i_right,t-tdel)
+                    start = self.aim_old.tele_l_start(i_right,t-tdel)
+                    end = self.aim_old.tele_r_start(i_self,t-tdel0)
 
                 [zoff,yoff,xoff] = LA.matmul(coor_start,end-start)
-                R = zoff #Not precisely, but good enough (otherwise use wfe.z_solve)
+                R = zoff #Not precise
                 R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
-                R_vec_origin = LA.matmul(np.linalg.inv(coor_start),R_vec) 
+                R_vec_origin = LA.matmul(np.linalg.inv(coor_start),R_vec)
                 [z,y,x] = LA.matmul(coor_end,-R_vec_origin)
-                #[z,y,x] = LA.matmul(coor_end,-direct)
+                #[z,y,x]=LA.matmul(coor_end,-direct)
                 angx = np.sign(x)*abs(np.arctan(x/z))
-                angy = np.sign(y)*abs(np.arctan(y/z)) # Note: This is the angle that the sending telescope PAAM must rotate
-                delay = tdel
+                angy = np.sign(y)*abs(np.arctan(y/z))
+                delay=tdel
 
             elif component=='PAAM':
-                if side=='l':
-                    tdel = self.wfe.data.L_sl_func_tot(i_self,t)
-                    if self.wfe.data.calc_method=='Waluschka':
-                        tdel0=tdel
-                    elif sel.wfe.data.calc_method=='Abram':
-                        tdel0=0
-                    end = self.aim_old.tele_r_start(i_left,t+tdel)
-                    start = self.aim_old.tele_l_start(i_self,t+tdel0)
-                    direct = self.aim_old.beam_l_direction(i_self,t+tdel0)
-                    coor_start = self.aim_old.beam_l_coor(i_self,t)
-                    coor_end = self.aim_old.tele_r_coor(i_left,t+tdel)
-
-                elif side=='r':
-                    tdel = self.wfe.data.L_sr_func_tot(i_self,t)
-                    if self.wfe.data.calc_method=='Waluschka':
-                        tdel0=tdel
-                    elif sel.wfe.data.calc_method=='Abram':
-                        tdel0=0
-                    end = self.aim_old.tele_l_start(i_right,t+tdel)
-                    start = self.aim_old.tele_r_start(i_self,t+tdel0)
-                    direct = self.aim_old.beam_r_direction(i_self,t+tdel0)
-                    coor_start = self.aim_old.beam_r_coor(i_self,t)
-                    coor_end = self.aim_old.tele_l_coor(i_right,t+tdel)
-                
-                [zoff,yoff,xoff] = LA.matmul(coor_start,end-start)
-                R = zoff #Not precisely, but good enough (otherwise use wfe.z_solve)
-                R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
-                tele_vec = LA.matmul(coor_start,-coor_end[0])
-                R_vec_x = np.array([R_vec[0],R_vec[2]])
-                R_vec_y = np.array([R_vec[0],R_vec[1]])
-                tele_vec_x = np.array([tele_vec[0],tele_vec[1]])
-                tele_vec_y = np.array([tele_vec[0],tele_vec[1]])
-
-                angx = LA.angle(tele_vec_x,R_vec_x)
-                angy = LA.angle(tele_vec_y,R_vec_y)
-                delay = tdel
-                print(angx,angy)
+                angy_solve = lambda PAAM_ang: pack.functions.get_wavefront_parallel(self.wfe,self.aim_old,i_self,t,side,PAAM_ang,'angy',mode='opposite')
+                try:
+                    angy =  scipy.optimize.brentq(angy_solve,-1e-2,1e-2)
+                except ValueError:
+                    angy=np.nan
+                delay=False
+                angx=False
 
         return [angx,angy,delay]
 
@@ -304,19 +306,32 @@ class AIM():
     def tele_control_ang_fc(self,option='wavefront'):
         # Option 'wavefront' means poiting with the purpose of getting a small tilt of the receiving wavefront
         # 'center' means pointing it to te center of the receiving telescope
+        i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
+        i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
 
         print('Telescope pointing strategy: '+option)
         # Obtaines functions for optimal telescope pointing vector
         if option=='center':
             scale=1
         elif option=='wavefront':
-            scale=1#0.5
+            scale=1
 
         delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[2]
         delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[2]
-        ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[0]*scale #...
-        ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[0]*scale
- 
+        if option=='wavefront':
+            #ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='tele',option=option)[0]*scale #...
+            #ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='tele',option=option)[0]*scale
+            ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[0]*scale #...
+            ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[0]*scale
+
+        
+        elif option=='center':
+            ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='tele',option=option)[0]*scale
+            ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='tele',option=option)[0]*scale
+            #ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[0]*scale
+            #ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[0]*scale
+
+
         if self.sampled_on==True:
             if type(self.sampled_val)==bool:
                 self.get_sampled_pointing(option='previous')
@@ -595,18 +610,30 @@ class AIM():
         return ret
 
     def PAAM_control_ang_fc(self,option='center'):
+        i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
+        i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
 
         print('PAAM pointing strategy: '+option)
-        # Obtaines functions for optimal telescope pointing vector
+        # Obtains functions for optimal telescope pointing vector
+        delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
+        delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
+
+        
         if option=='wavefront':
-            delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
-            delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
-            i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
-            i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
+            #ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='PAAM',option=option)[1]
+            #ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='PAAM',option=option)[1]
+            ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
+            ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
+            print(ang_PAAM_extra_l)
 
 
+        elif option=='center':
             ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t,'r',component='PAAM',option=option)[1]
             ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t,'l',component='PAAM',option=option)[1]
+
+            #ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
+            #ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
+
 
         if self.sampled_on==True:
             [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
@@ -618,11 +645,11 @@ class AIM():
 
         
         if option=='wavefront':
-            self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t)*1000
-            self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)+ang_PAAM_extra_r(i,t)*1000
+            self.PAAM_ang_l_fc = lambda i,t: ang_PAAM_extra_l(i,t)
+            self.PAAM_ang_r_fc = lambda i,t: ang_PAAM_extra_r(i,t)
         elif option=='center':
-            self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)#+ang_PAAM_extra_l(i,t)
-            self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)#+ang_PAAM_extra_r(i,t)
+            self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t)
+            self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)+ang_PAAM_extra_r(i,t)
 
 
         self.PAAM_option = option
