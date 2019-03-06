@@ -363,6 +363,7 @@ class AIM():
 
 
     def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False,option='wavefront'):
+        self.option_tele=option
         if self.init_set==False:
             self.get_sampled_pointing(option='previous')
             self.tele_control_ang_fc(option=option)
@@ -402,6 +403,16 @@ class AIM():
             #tele_r = self.step_response(tele_r_SS,'tele',dt,tau=tau,mode=mode)
             self.tele_l_ang_SS = tele_l_SS
             self.tele_r_ang_SS = tele_r_SS
+        
+        elif method=='SS_FOV':
+            ret={}
+            for link in range(1,4):
+                ret = pack.functions.get_SS_FOV(self.wfe,self.aim_old,link,ret=ret)
+
+            self.tele_l_ang_SS_FOV = lambda i,t: ret[str(i)]['l'](t)
+            self.tele_r_ang_SS_FOV = lambda i,t: ret[str(i)]['l'](t)
+            tele_l = self.tele_l_ang_SS_FOV
+            tele_r = self.tele_r_ang_SS_FOV
 
         else:
             raise ValueError('Please select a valid telescope pointing method')
@@ -615,6 +626,7 @@ class AIM():
         return ret
 
     def PAAM_control_ang_fc(self,option='center'):
+        self.option_PAAM=option
         i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
         i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
 

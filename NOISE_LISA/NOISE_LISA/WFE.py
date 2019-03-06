@@ -138,22 +138,37 @@ class WFE():
     
     def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,option_tele='wavefront',option_PAAM='wavefront'):
         
+        if PAAM_method!='no control':
+            PAAM_testmode='full control'
+        else:
+            PAAM_testmode=PAAM_method
+        if tele_method!='no control':
+            tele_testmode='full control'
+        else:
+            tele_testmode=tele_method
+
         try:
             del self.aim
         except AttributeError:
             pass
 
         aim0 = self.get_pointing(tele_method = 'no control',PAAM_method='no control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False,option_tele=option_tele,option_PAAM=option_PAAM)
-        
-        aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
-        aimnew.iteration = 0
+       
+        if iteration==0:
+            aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
+            aimnew.iteration = 0
+        else:
+            aimnew = self.get_pointing(tele_method = tele_testmode,PAAM_method=PAAM_testmode,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aim0,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM)
+            aimnew.iteration = 0
 
         if iteration>0:
             for i in range(0,iteration):
                 aimold = aimnew
                 del aimnew
-                aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM,count=i+1)
-
+                if i<iteration-1:
+                    aimnew = self.get_pointing(tele_method = tele_testmode,PAAM_method=PAAM_testmode,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM,count=i+1)
+                else:
+                    aimnew = self.get_pointing(tele_method = tele_method,PAAM_method=PAAM_method,iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,aim_old=aimold,aim0=aim0,sampled=True,option_tele=option_tele,option_PAAM=option_PAAM,count=i+1)
         
         aimnew.iteration = iteration
         self.aim = aimnew

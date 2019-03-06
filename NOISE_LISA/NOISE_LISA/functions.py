@@ -109,7 +109,7 @@ def nanmean(l):
 
 
 
-def write(inp,title='',direct ='',extr='',list_inp=False):
+def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[]):
     date = get_date(option='date')
     time = get_date(option='time')
     
@@ -126,50 +126,60 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
     #if len(inp)==1:
     #    inp=[inp]
     
-    if type(inp)==dict:
-        inp_new = []
-        for k in inp.keys():
-            inp_new.append(inp[k])
-        inp = inp_new
-        del inp_new
-    elif type(inp)!=list:
-        inp=[inp]
+    if sampled==True:
+        for h in headers:
+            writefile.write(h+'\n')
+        [x,y]=inp
+        for i in range(0,len(x)):
+            writefile.write(str(x[i])+';'+str(y[i])+'\n')
 
-    for m in inp:
-        if type(m)==list:
-            if len(m)==3 and 'Figure' in str(type(m[0])):
-                f= m[0]
-                ax = flatten(m[1])
-                title=f._suptitle.get_text()
-                print(title.split('iter_'))
-                writefile.write('Title:: '+f._suptitle.get_text()+'\n')
-                writefile.write('Iteration:: '+str(m[2])+'\n')
-                for i in range(0,len(ax)):
-                    ax_calc=ax[i]
-                    ax_title = ax_calc.get_title()
-                    line = 'ax_title:: '+ax_title
-                    writefile.write(line+'\n')
-                    
-                    for l in range(0,len(ax_calc.lines)):
-                        label = str(ax_calc.lines[l]._label)
-                        writefile.write('Label:: '+label+'\n')
-                        xy = ax_calc.lines[l]._xy
-                        for k in xy:
-                            writefile.write(str(k[0])+';'+str(k[1])+'\n')
-        elif type(m)==tuple and type(m[4])==dict:
-            for out in m[0:-2]:
-                writefile.write(out+'\n')
-            for k in sorted(m[-1].keys()):
-                writefile.write(m[3]+' '+k+'\n')
-                for SC in sorted(m[-1][k].keys()):
-                    for side in sorted(m[-1][k][SC].keys()):
-                        if side=='l':
-                            side_wr='left'
-                        elif side=='r':
-                            side_wr='right'
-                        writefile.write('Label:: SC'+SC+', '+side_wr+'\n')
-                        for point in m[-1][k][SC][side]:
-                             writefile.write(str(point[0])+';'+str(point[1])+'\n')
+        
+
+    elif sampled==False:
+        if type(inp)==dict:
+            inp_new = []
+            for k in inp.keys():
+                inp_new.append(inp[k])
+            inp = inp_new
+            del inp_new
+        elif type(inp)!=list:
+            inp=[inp]
+
+        for m in inp:
+            if type(m)==list:
+                if len(m)==3 and 'Figure' in str(type(m[0])):
+                    f= m[0]
+                    ax = flatten(m[1])
+                    title=f._suptitle.get_text()
+                    print(title.split('iter_'))
+                    writefile.write('Title:: '+f._suptitle.get_text()+'\n')
+                    writefile.write('Iteration:: '+str(m[2])+'\n')
+                    for i in range(0,len(ax)):
+                        ax_calc=ax[i]
+                        ax_title = ax_calc.get_title()
+                        line = 'ax_title:: '+ax_title
+                        writefile.write(line+'\n')
+                        
+                        for l in range(0,len(ax_calc.lines)):
+                            label = str(ax_calc.lines[l]._label)
+                            writefile.write('Label:: '+label+'\n')
+                            xy = ax_calc.lines[l]._xy
+                            for k in xy:
+                                writefile.write(str(k[0])+';'+str(k[1])+'\n')
+            elif type(m)==tuple and type(m[4])==dict:
+                for out in m[0:-2]:
+                    writefile.write(out+'\n')
+                for k in sorted(m[-1].keys()):
+                    writefile.write(m[3]+' '+k+'\n')
+                    for SC in sorted(m[-1][k].keys()):
+                        for side in sorted(m[-1][k][SC].keys()):
+                            if side=='l':
+                                side_wr='left'
+                            elif side=='r':
+                                side_wr='right'
+                            writefile.write('Label:: SC'+SC+', '+side_wr+'\n')
+                            for point in m[-1][k][SC][side]:
+                                 writefile.write(str(point[0])+';'+str(point[1])+'\n')
 
 
             
@@ -355,7 +365,7 @@ def get_extra_ang_mean(wfe,component):
 
     return [offset_l,offset_r]
 
-def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precision=0,ksi=[0,0]):
+def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precision=0,ksi=[0,0],angles=False):
     [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
     if mode=='opposite':
         if side=='l':
@@ -408,11 +418,19 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
-            tele_ang = aim.tele_r_ang(i_left,t-tdel)
-            coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
-            coor_end = aim.tele_l_coor(i_self,t)
-            start = aim.tele_r_start(i_left,t-tdel)
-            end = aim.tele_l_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+            if angles==False:
+                tele_ang = aim.tele_r_ang(i_left,t-tdel)
+                coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
+                coor_end = aim.tele_l_coor(i_self,t)
+                start = aim.tele_r_start(i_left,t-tdel)
+                end = aim.tele_l_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+            else:
+                tele_ang=angles[1]
+                PAAM_ang = aim.beam_r_ang(i_left,t-tdel)
+                coor_start = beam_coor_out(wfe,i_left,t-tdel,angles[1],PAAM_ang)
+                coor_end = coor_tele(wfe,i_self,t,angles[0])
+                start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_left,t-tdel)
+                end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
 
         
         elif side=='r':
@@ -421,12 +439,21 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
-            tele_ang = aim.tele_l_ang(i_right,t-tdel)
-            coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
-            coor_end = aim.tele_r_coor(i_self,t)
-            start = aim.tele_l_start(i_right,t-tdel)+coor_start[1]*ksi[1]+coor_start[2]*ksi[0]
-            end = aim.tele_r_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
-            
+            if angles==False:
+                tele_ang = aim.tele_l_ang(i_right,t-tdel)
+                coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
+                coor_end = aim.tele_r_coor(i_self,t)
+                start = aim.tele_l_start(i_right,t-tdel)+coor_start[1]*ksi[1]+coor_start[2]*ksi[0]
+                end = aim.tele_r_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+            else:
+                tele_ang=angles[1]
+                PAAM_ang = aim.beam_l_ang(i_right,t-tdel)
+                coor_start = beam_coor_out(wfe,i_right,t-tdel,angles[1],PAAM_ang)
+                coor_end = coor_tele(wfe,i_self,t,angles[0])
+                start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_right,t-tdel)
+                end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+
+                
         [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
         if precision==0:
             R = zoff # Not precise
@@ -461,10 +488,13 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         ret_val['bd_receiving_frame'] = LA.matmul(coor_end,ret_val['bd_original_frame'])
         ret_val['angx_func_rec'] = angx
         ret_val['angy_func_rec'] = angy
+        ret_val['R_vec_tele']=R_vec_tele
+        ret_val['tilt'] = np.arccos(R_vec_tele[0]/np.linalg.norm(R_vec_tele))
         #ret_val['tilt']=(angx**2+angy**2)**0.5
         #ret_val['tilt']=LA.angle(R_vec_tele,(angx**2+angy**2)**0.5
-        ret_val['piston']=piston
-        ret_val['z_extra'] = z_extra
+        if precision==1:
+            ret_val['piston']=piston
+            ret_val['z_extra'] = z_extra
         ret_val['R']=R
         ret_val["R_vec"] = R_vec
 
@@ -614,4 +644,71 @@ def interpolate(x,y,method='interp1d'):
     else:
         print('Please select proper interpolation method (interp1d)')
 
+def get_FOV(angles,wfe,aim,link,t,m='tilt'):
+    i = (link-2)%3
+    [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
+    
+    tilt_left = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'all',mode='self',precision=0,angles=angles)[m]
+    tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'l',False,'all',mode='self',precision=0,angles=[angles[1],angles[0]])[m]
+     
+    #print(tilt_left,tilt_right)
+    return max(abs(tilt_left),abs(tilt_right))
+    #return [max(tilt_left,tilt_right),min(tilt_left,tilt_right)]
+
+def get_new_angles(aim,link,t):
+    i = (link-2)%3
+    [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
+    
+    ang_l_in=aim.tele_ang_l_fc(i_left,t)
+    ang_r_in=aim.tele_ang_r_fc(i_right,t)
+    
+    angles = [ang_l_in,ang_r_in]
+    
+    return angles
+
+def get_SS_FOV(wfe,aim,link,ret={},FOV_lim=False):
+    if FOV_lim==False:
+        FOV_lim=wfe.FOV
+
+    if ret=={}:
+        for SC in range(1,4):
+            ret[str(SC)]={}
+    
+    t0 = wfe.t_all[3]
+    t_end = wfe.t_all[-3]
+
+    t_adjust=[t0]
+    t_solve=t_adjust[0]
+    angles_all=[]
+    angles_all.append(get_new_angles(aim,link,t0))
+
+    while t_solve<t_end:
+        FOV_func = lambda t: get_FOV(angles_all[-1],wfe,aim,link,t,m='tilt') - FOV_lim
+        try:
+            t_solve = scipy.optimize.brentq(FOV_func,t_adjust[-1],t_end,xtol=1)
+            t_adjust.append(t_solve)
+            angles_new = get_new_angles(aim,link,t_solve)
+            angles_all.append(angles_new)
+        except ValueError,e:
+            print e
+            t_solve=t_end
+            if e=='f(a) and f(b) must have different signs':
+                break
+    #t_solve = scipy.optimize.brentq(FOV_func_max,t0,t_end,xtol=1)
+    angles_all = np.matrix(angles_all)
+    i = (link-2)%3
+    [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
+
+    ang_l_tele = lambda t: get_SS_func(t_adjust,angles_all[:,0],t)
+    ang_r_tele = lambda t: get_SS_func(t_adjust,angles_all[:,2],t)
+    
+    ret[str(i_left)]['l'] = ang_l_tele
+    ret[str(i_right)]['r'] = ang_r_tele
+
+    return ret
+
+def get_SS_func(x,y,x_check):
+    A = [t for t in x if t<x_check]
+    val = y[len(A)-1]
+    return np.float64(val)
 
