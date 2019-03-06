@@ -554,6 +554,9 @@ class WFE():
             except KeyError:
                 try:
                     ret_arg.append(point_val.get(ret_val))
+                except NameError,e:
+                    print(e)
+                    print('Please select proper return value')
             except NameError,e:
                 print(e)
                 print('Please select proper return value')
