@@ -61,8 +61,10 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
                 print(x)
                 print(d)
                 print(y)
+                status=False
+                pass
 
-        elif status==False:
+        if status==False:
             x = xref[lim[0]:lim[-1]]
             y = np.array([np.nan]*len(x))
             return x,y
@@ -236,13 +238,13 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
             y_ref = np.array([ref[meas_plot[m]](t)*unit[meas_plot[m]][1] for t in x1_sec])
             ax[1,0].plot(x1,y1-y_ref,label=label1)
             ax[1,0].plot(x2,y2-y_ref,label=label2)
-            ax[1,0].legend(loc='best',bbox_to_anchor=(1, -0.12))
+            ax[1,0].legend(loc='best',bbox_to_anchor=(1.2, -0.12))
             ax[1,0].set_title('Relative difference w.r.t. optimal/standard',pad=20)
 
             ax[1,1].plot(x1,y1,label=label1)
             ax[1,1].plot(x2,y2,label=label2)
             ax[1,1].plot(x1,y_ref,color='r',linestyle='--')
-            ax[1,1].legend(loc='best',bbox_to_anchor=(1, -0.12))
+            ax[1,1].legend(loc='best',bbox_to_anchor=(1.2, -0.12))
             ax[1,1].set_title('Overview',pad=20)
 
             for i in range(0,len(ax)):

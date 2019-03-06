@@ -181,8 +181,30 @@ def write(inp,title='',direct ='',extr='',list_inp=False):
 
     return direct
 
-def rdln(line):
-    return line[0:-1]
+def rdln(line,typ='text'):
+    if '[array(' in line:
+        newline = line.split('array(')
+        line = newline[-1].split(')')[0]+']'
+        A = line[0:-1]
+        #print(A)
+        #print('')
+        A = A.replace('[','')
+        A = A.replace(']','')
+        A = A.replace(' ','')
+        A = A.split(',')
+        #print(A)
+        B=[]
+        for i in A:
+            B.append(np.float64(i))
+        B = B
+        #print(B,len(B))
+        return [B]
+    else:
+        ret = line[0:-1]
+        if typ=='float':
+            return np.float64(ret)
+        else:
+            return ret
 
 def read(filename='',direct=''):
     ret={}
@@ -251,6 +273,7 @@ def read(filename='',direct=''):
                         ret[key0][key1][iteration][option][key2][key3]={}
                         ret[key0][key1][iteration][option][key2][key3]['x']=np.array([])
                         ret[key0][key1][iteration][option][key2][key3]['y']=np.array([])
+
                 else:
                     try:
                         del x,y 
@@ -258,13 +281,14 @@ def read(filename='',direct=''):
                         pass
                     try:
                         [x,y] = line.split(';')
-                        ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],np.float64(rdln(x)))
+                        ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],rdln(x,typ='float'))
                         try:
-                            ret[key0][key1][iteration][option][key2][key3]['y'] = np.append(ret[key0][key1][iteration][option][key2][key3]['y'],np.float64(rdln(y)))
+                            ret[key0][key1][iteration][option][key2][key3]['y'] =np.append(ret[key0][key1][iteration][option][key2][key3]['y'],rdln(y,typ='float'))
                             value=True
                         except ValueError:
                             value=False
-                    except:
+                    except ValueError,e:
+                        print(e)
                         print(line)
                     if value==False:
                         #except ValueError:
@@ -424,6 +448,31 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         return angx
     elif ret=='tilt':
         return (angx**2+angy**2)**0.5
+    elif ret=='all':
+        ret_val={}
+        ret_val['start']=start
+        ret_val['end']=end
+        ret_val['zoff']=zoff
+        ret_val['yoff']=yoff
+        ret_val['xoff']=xoff
+        ret_val['coor_start']=coor_start
+        ret_val['coor_end']=coor_end
+        ret_val['bd_original_frame'] = np.array(coor_start[0])
+        ret_val['bd_receiving_frame'] = LA.matmul(coor_end,ret_val['bd_original_frame'])
+        ret_val['angx_func_rec'] = angx
+        ret_val['angy_func_rec'] = angy
+        #ret_val['tilt']=(angx**2+angy**2)**0.5
+        #ret_val['tilt']=LA.angle(R_vec_tele,(angx**2+angy**2)**0.5
+        ret_val['piston']=piston
+        ret_val['z_extra'] = z_extra
+        ret_val['R']=R
+        ret_val["R_vec"] = R_vec
+
+        return ret_val
+
+
+
+
 
 
 
