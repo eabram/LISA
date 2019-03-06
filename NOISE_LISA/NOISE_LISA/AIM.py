@@ -404,7 +404,7 @@ class AIM():
             self.tele_l_ang_SS = tele_l_SS
             self.tele_r_ang_SS = tele_r_SS
         
-        elif method=='SS_FOV':
+        elif method=='SS FOV':
             ret={}
             for link in range(1,4):
                 ret = pack.functions.get_SS_FOV(self.wfe,self.aim_old,link,ret=ret)
