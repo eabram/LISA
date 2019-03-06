@@ -168,9 +168,12 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     ref['R mean'] = ref['piston mean']
     ref['R_vec_tele_rec mean'] = ref['piston mean']
-    #ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(1,t)
+    if side=='l':
+        ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(SC,t)
+    elif side=='r':
+        ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rir_func_tot(SC,t)
     ref['power mean'] = lambda t: max_power(wfe,SC,t,side)
-    ref['FOV mean'] = lambda t: wfe.FOV
+    #ref['FOV mean'] = lambda t: wfe.FOV
     if side=='l':
         scale=-1
     elif side=='r':
@@ -184,7 +187,10 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     for m in meas:
         if m not in ref.keys():
-            ref[m] = lambda t: 0
+            if 'FOV' in m:
+                ret[m] = lambda t: wfe.FOV
+            else:
+                ref[m] = lambda t: 0
 
     unit={}
     for m in meas:

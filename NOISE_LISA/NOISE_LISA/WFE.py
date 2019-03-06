@@ -551,12 +551,12 @@ class WFE():
         for ret_val in ret:
             try:
                 ret_arg.append(locals()[ret_val])
-            except NameError:
+            except KeyError:
                 try:
                     ret_arg.append(point_val.get(ret_val))
-                except NameError,e:
-                    print(e)
-                    print('Please select proper return value')
+            except NameError,e:
+                print(e)
+                print('Please select proper return value')
             
             return ret_arg
 
