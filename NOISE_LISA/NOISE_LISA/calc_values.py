@@ -170,7 +170,7 @@ def ang(wfe,iteration=[0,1]):
     tele_r={}
     PAAM_r={}
 
-    PAAM_methods=['no control','full control','SS']
+    PAAM_methods=['no_control','full_control','SS']
     tele_methods = PAAM_methods
 
     for i in iteration:

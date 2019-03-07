@@ -378,12 +378,12 @@ class AIM():
         print('The telescope control method is: '+method)
         print(' ')
         
-        # Calculating telescope angle for 'full control', 'no control' and 'SS' (step and stair)
-        if method=='full control':
+        # Calculating telescope angle for 'full_control', 'no_control' and 'SS' (step and stair)
+        if method=='full_control':
             tele_l = tele_l
             tele_r = tele_r
 
-        elif method=='no control':
+        elif method=='no_control':
             #self.do_static_tele_angle('tele')
             if tele_ang_extra==False:
                 offset_l = [0,0,0]
@@ -405,7 +405,7 @@ class AIM():
             self.tele_r_ang_SS = tele_r_SS
         
         elif 'SS' in method:
-            m = method.split(' ')[-1]
+            m = method.split('SS_')[-1]
             print('SS by '+m)
             print('')
             ret={}
@@ -520,9 +520,9 @@ class AIM():
     #    else:
     #        self.tele_method = method
 
-    #    if iteration>0 and method!='no control':
+    #    if iteration>0 and method!='no_control':
     #        for step in range(1,iteration+1):
-    #            self.tele_aim_ang(method='full control',dt=dt,jitter=False,tau=tau,mode=mode)
+    #            self.tele_aim_ang(method='full_control',dt=dt,jitter=False,tau=tau,mode=mode)
     #            ang_iter = self.iteration_tele(ang_iter)
     #            self.tele_aim_vec(ang=ang_iter)
     #            print('Iteration: '+str(step))
@@ -703,12 +703,12 @@ class AIM():
         #self.PAAM_fc_ang_l = ang_fc_l
         #self.PAAM_fc_ang_r = ang_fc_r
 
-        # Obtaining PAAM angles for 'fc' (full control), 'nc' (no control) and 'SS' (step and stair)
+        # Obtaining PAAM angles for 'fc' (full_control), 'nc' (no_control) and 'SS' (step and stair)
         
-        if method=='full control':
+        if method=='full_control':
             ang_l = ang_fc_l
             ang_r = ang_fc_r
-        elif method=='no control':
+        elif method=='no_control':
             #self.do_static_tele_angle('PAAM')
             if PAAM_ang_extra==False:
                 ang_l = lambda i,t: 0

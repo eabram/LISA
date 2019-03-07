@@ -8,7 +8,7 @@ import NOISE_LISA
 
 from matplotlib.font_manager import FontProperties
 
-def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',methods1=['no control','no control'],methods2=['full control','full control'],lim=[3,-3]):
+def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',methods1=['no_control','no_control'],methods2=['full_control','full_control'],lim=[3,-3]):
     def get_output(ret,methods,SC,side):
         return ret[methods[0]][methods[1]][str(methods[2])][methods[3]]
 
@@ -179,7 +179,7 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     elif side=='r':
         scale=1
     ref['tele_ang mean'] = lambda t: np.radians(30)*scale
-    if methods1[1]=='full control' and methods2[1]=='full control':
+    if methods1[1]=='full_control' and methods2[1]=='full_control':
         if side=='l':
             ref['PAAM_ang mean'] = lambda t: -wfe.data.PAA_func['l_out'](SC,t)
         elif side=='r':
@@ -207,6 +207,7 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     label1= 'tele: '+methods1[0]+', '+ methods1[3].split('_')[1]+', PAAM: '+methods1[1]+', '+ methods1[3].split('_')[4]+'\n'+'Iteration: '+str(methods1[2])
     label2= 'tele: '+methods2[0]+', '+ methods2[3].split('_')[1]+', PAAM: '+methods2[1]+', '+ methods2[3].split('_')[4]+'\n'+'Iteration: '+str(methods2[2])
     lim=[3,-3]
+    print(lim)
     for m in range(0,len(meas_plot)):
         print(meas_plot[m])
         print(methods1,methods2)
@@ -545,7 +546,7 @@ class plot_func():
 
         f,ax = plt.subplots(4,1,figsize=(20,10))
         plt.subplots_adjust(hspace=0.6,wspace=0.2)
-        ttl0 = ttl_sample_all['no control']['nc']
+        ttl0 = ttl_sample_all['no_control']['nc']
         for tele_key in ttl_sample_all.keys():
             for PAAM_key in ttl_sample_all[tele_key].keys():
                 ttl = ttl_sample_all[tele_key][PAAM_key]
