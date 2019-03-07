@@ -136,7 +136,7 @@ class WFE():
 
     # Beam properties equations
     
-    def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,option_tele='wavefront',option_PAAM='wavefront',sapled=False):
+    def get_pointing_with_iteration(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,option_tele='wavefront',option_PAAM='wavefront',sampled=True):
         
         if PAAM_method!='no control':
             PAAM_testmode='full control'
