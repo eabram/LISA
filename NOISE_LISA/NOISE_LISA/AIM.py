@@ -404,15 +404,18 @@ class AIM():
             self.tele_l_ang_SS = tele_l_SS
             self.tele_r_ang_SS = tele_r_SS
         
-        elif method=='SS FOV':
+        elif 'SS' in method:
+            m = method.split(' ')[-1]
+            print('SS by '+m)
+            print('')
             ret={}
             for link in range(1,4):
-                ret = pack.functions.get_SS_FOV(self.wfe,self.aim_old,link,ret=ret)
+                ret = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m)
 
-            self.tele_l_ang_SS_FOV = lambda i,t: ret[str(i)]['l'](t)
-            self.tele_r_ang_SS_FOV = lambda i,t: ret[str(i)]['l'](t)
-            tele_l = self.tele_l_ang_SS_FOV
-            tele_r = self.tele_r_ang_SS_FOV
+            self.tele_l_ang_SS = lambda i,t: ret[str(i)]['l'](t)
+            self.tele_r_ang_SS = lambda i,t: ret[str(i)]['l'](t)
+            tele_l = self.tele_l_ang_SS
+            tele_r = self.tele_r_ang_SS
 
         else:
             raise ValueError('Please select a valid telescope pointing method')

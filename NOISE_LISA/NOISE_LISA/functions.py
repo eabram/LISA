@@ -465,9 +465,10 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             R = wfe.R(piston)
 
         R_vec = np.array([(R**2-xoff**2-yoff**2)**0.5,yoff,xoff])
-        R_vec_tele = LA.matmul(coor_end,-LA.matmul(np.linalg.inv(coor_start),R_vec))
-        angx = np.arctan(abs(R_vec_tele[2]/R_vec_tele[0]))*np.sign(R_vec_tele[2])
-        angy = np.arctan(abs(R_vec_tele[1]/R_vec_tele[0]))*np.sign(R_vec_tele[1])
+        R_vec_origin = LA.matmul(np.linalg.inv(coor_start),R_vec)
+        R_vec_tele_rec = LA.matmul(coor_end,-R_vec_origin)
+        angx = np.arctan(abs(R_vec_tele_rec[2]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[2])
+        angy = np.arctan(abs(R_vec_tele_rec[1]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[1])
 
     if ret=='angy':
         return angy
@@ -488,15 +489,25 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         ret_val['bd_receiving_frame'] = LA.matmul(coor_end,ret_val['bd_original_frame'])
         ret_val['angx_func_rec'] = angx
         ret_val['angy_func_rec'] = angy
-        ret_val['R_vec_tele']=R_vec_tele
-        ret_val['tilt'] = np.arccos(R_vec_tele[0]/np.linalg.norm(R_vec_tele))
+        ret_val['R_vec_tele_rec']=R_vec_tele_rec
+        #ret_val['tilt'] = np.arccos(R_vec_tele_rec[0]/np.linalg.norm(R_vec_tele))
         #ret_val['tilt']=(angx**2+angy**2)**0.5
         #ret_val['tilt']=LA.angle(R_vec_tele,(angx**2+angy**2)**0.5
         if precision==1:
             ret_val['piston']=piston
             ret_val['z_extra'] = z_extra
         ret_val['R']=R
-        ret_val["R_vec"] = R_vec
+        ret_val["R_vec_beam_send"] = R_vec
+        ret_val['R_vec_origin'] = R_vec_origin
+        ret_val['r']=(xoff**2+yoff**2)**0.5
+
+        FOV_beamline = np.arccos(-ret_val['bd_receiving_frame'][0]/np.linalg.norm(ret_val['bd_receiving_frame']))
+        FOV_wavefront = LA.angle(-R_vec_origin,coor_end[0])
+        FOV_position = LA.angle(start-end,coor_end[0])
+        ret_val['tilt']=FOV_wavefront
+        ret_val['FOV_beamline']=FOV_beamline
+        ret_val['FOV_wavefront']=FOV_wavefront
+        ret_val['FOV_position']=FOV_position
 
         return ret_val
 
@@ -666,10 +677,12 @@ def get_new_angles(aim,link,t):
     
     return angles
 
-def get_SS_FOV(wfe,aim,link,ret={},FOV_lim=False):
-    if FOV_lim==False:
-        FOV_lim=wfe.FOV
-
+def get_SS(wfe,aim,link,ret={},m='tilt'):
+    #if FOV_lim==False:
+    #    FOV_lim=wfe.FOV
+    
+    FOV_lim = wfe.SS[m]
+    print('SS limit = '+str(FOV_lim))
     if ret=={}:
         for SC in range(1,4):
             ret[str(SC)]={}
@@ -683,7 +696,7 @@ def get_SS_FOV(wfe,aim,link,ret={},FOV_lim=False):
     angles_all.append(get_new_angles(aim,link,t0))
 
     while t_solve<t_end:
-        FOV_func = lambda t: get_FOV(angles_all[-1],wfe,aim,link,t,m='tilt') - FOV_lim
+        FOV_func = lambda t: get_FOV(angles_all[-1],wfe,aim,link,t,m=m) - FOV_lim
         try:
             t_solve = scipy.optimize.brentq(FOV_func,t_adjust[-1],t_end,xtol=1)
             t_adjust.append(t_solve)
