@@ -369,7 +369,7 @@ class WFE():
     
 
 
-    def aperture(self,xlist,ylist,function,dType=np.complex64): # Creates matrix of function over an aperture (circle)
+    def aperture(self,xlist,ylist,function,dType=np.float64): # Creates matrix of function over an aperture (circle)
         #print('Type of telescope control is: ' + self.tele_control)
         if type(xlist)==bool:
             if xlist==False:
@@ -390,7 +390,11 @@ class WFE():
                 y = ylist[j]
                 #r = (x**2+y**2)**0.5
                 if x**2+y**2<=0.25*(self.D**2):
-                    ps[i,j] = function(x,y)
+                    val = function(x,y)
+                    if type(val)==list:
+                        val=val[0]
+                    ps[i,j] = val
+
                 else:
                     ps[i,j] = np.nan
         
