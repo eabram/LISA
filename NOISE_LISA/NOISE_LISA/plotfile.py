@@ -127,16 +127,16 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
             for k2 in ret[k1].keys():
                 for k3 in ret[k1][k2].keys():
                     for k31 in ret[k1][k2][k3].keys():
+                        if meas_plot=='all':
+                            meas_plot=ret[k1][k2][k3][k31].keys()
                         for k4 in ret[k1][k2][k3][k31].keys():
-                            if meas_plot=='all':
-                                meas_plot=ret[k1][k2][k3][k31].keys()
                             for k5 in ret[k1][k2][k3][k31][k4]:
                                 xref = ret[k1][k2][k3][k31][k4][k5]['x']
                                 print(k5)
                                 raise BreakIt
     except BreakIt:
         pass
-
+    
 
     ret1 = get_output(ret,methods1,SC,side)
     ret2 = get_output(ret,methods2,SC,side)
@@ -187,8 +187,8 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     for m in meas:
         if m not in ref.keys():
-            if 'FOV' in m:
-                ret[m] = lambda t: wfe.FOV
+            if 'FOV_' in m:
+                ref[m] = lambda t: wfe.FOV
             else:
                 ref[m] = lambda t: 0
 
@@ -263,6 +263,8 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
             f_all.append([meas_plot[m],label1,label2,f])
             plt.close('all')
         except KeyError:
+            print(m)
+            print('')
             pass
     #if ready==True:
     return f_all,ret1,ret2,meas_plot,pl1,pl2

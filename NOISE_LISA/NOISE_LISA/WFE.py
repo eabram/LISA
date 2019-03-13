@@ -20,6 +20,7 @@ class WFE():
         adjust['length_calc']= kwargs.pop('duration',40)
         adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
         adjust['calc_method']=kwargs.pop('calc_method','Waluschka')
+        adjust['LISA']=kwargs.pop('LISA',False)
         if self.data==False:
             self.get_PAA_LISA(para,adjust=adjust)
 
@@ -70,7 +71,8 @@ class WFE():
         'select':'Hallion', # Select which orbit files will be imported ('all' is all)
         'test_calc':False,
         'abberation':False,
-        'delay': True
+        'delay': True,
+        'LISA': False
         }
 
         for k in adjust.keys():
