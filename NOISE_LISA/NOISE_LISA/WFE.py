@@ -20,7 +20,7 @@ class WFE():
         adjust['length_calc']= kwargs.pop('duration',40)
         adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
         adjust['calc_method']=kwargs.pop('calc_method','Waluschka')
-        adjust['LISA_opt']=kwargs.pop('LISA_opt',False)
+        adjust['LISA_opt']=kwargs.pop('LISA_opt','cache')
         self.LISA = adjust['LISA_opt']
         if self.data==False:
             self.get_PAA_LISA(para,adjust=adjust)

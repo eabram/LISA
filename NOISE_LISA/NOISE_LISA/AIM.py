@@ -375,7 +375,11 @@ class AIM():
         else:
             self.tele_method = method
 
-        print('The telescope control method is: '+method)
+        try:
+            print('The telescope control method is: '+method)
+        except:
+            print('The telescope control method is: user defined')
+
         print(' ')
         
         # Calculating telescope angle for 'full_control', 'no_control' and 'SS' (step and stair)
@@ -409,13 +413,20 @@ class AIM():
             print('SS by '+m)
             print('')
             ret={}
+            t_all={}
             for link in range(1,4):
-                ret = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m)
+                ret,t_all = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all)
+            
+            self.t_adjust = t_all
 
             self.tele_l_ang_SS = lambda i,t: ret[str(i)]['l'](t)
-            self.tele_r_ang_SS = lambda i,t: ret[str(i)]['l'](t)
+            self.tele_r_ang_SS = lambda i,t: ret[str(i)]['r'](t)
             tele_l = self.tele_l_ang_SS
             tele_r = self.tele_r_ang_SS
+        
+        elif type(method)==dict:
+            tele_l = lambda i,t: pack.functions.get_tele_SS(self.aim_old,method,i,t,'l')
+            tele_r = lambda i,t: pack.functions.get_tele_SS(self.aim_old,method,i,t,'r')
 
         else:
             raise ValueError('Please select a valid telescope pointing method')

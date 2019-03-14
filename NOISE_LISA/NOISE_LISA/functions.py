@@ -14,8 +14,26 @@ def get_nearest_smaller_value(lst,val):
             if val<lst[i] and val>=lst[i-1]:
                 pos = i-1
                 break
+    try:
+        return pos
+    except UnboundLocalError:
+        pass
 
-    return pos
+def get_tele_SS(aim,method,i,t,side):
+    if side =='l':
+        key='SC'+str(i)+', left'
+        fc = aim.tele_ang_l_fc
+    elif side =='r':
+        key='SC'+str(i)+', right'
+        fc = aim.tele_ang_r_fc
+    t_adjust = method[key]['x']
+    pos_t = get_nearest_smaller_value(t_adjust,t)
+    
+    try:
+        return fc(i,t_adjust[pos_t])
+    except:
+        #print(pos_t)
+        return np.nan
 
 def make_nan(function,t,lim):
     [a,b]=lim
@@ -179,7 +197,11 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
                                 side_wr='right'
                             writefile.write('Label:: SC'+SC+', '+side_wr+'\n')
                             for point in m[-1][k][SC][side]:
-                                 writefile.write(str(point[0])+';'+str(point[1])+'\n')
+                                try:
+                                    writefile.write(str(point[0])+';'+str(point[1])+'\n')
+                                except IndexError:
+                                    writefile.write(str(point)+'\n')
+
 
 
             
@@ -290,7 +312,11 @@ def read(filename='',direct=''):
                     except NameError:
                         pass
                     try:
-                        [x,y] = line.split(';')
+                        if ';' in line:
+                            [x,y] = line.split(';')
+                        else:
+                            x = line
+                            y='np.nan'
                         ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],rdln(x,typ='float'))
                         try:
                             ret[key0][key1][iteration][option][key2][key3]['y'] =np.append(ret[key0][key1][iteration][option][key2][key3]['y'],rdln(y,typ='float'))
@@ -655,29 +681,46 @@ def interpolate(x,y,method='interp1d'):
     else:
         print('Please select proper interpolation method (interp1d)')
 
-def get_FOV(angles,wfe,aim,link,t,m='tilt'):
+def get_FOV(angles,wfe,aim,link,t,m='tilt',mode='normal'):
     i = (link-2)%3
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
     
     tilt_left = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'all',mode='self',precision=0,angles=angles)[m]
-    tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'l',False,'all',mode='self',precision=0,angles=[angles[1],angles[0]])[m]
-     
-    #print(tilt_left,tilt_right)
-    return max(abs(tilt_left),abs(tilt_right))
-    #return [max(tilt_left,tilt_right),min(tilt_left,tilt_right)]
+    tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'r',False,'all',mode='self',precision=0,angles=[angles[1],angles[0]])[m]
+    
+    if mode=='normal':
+        return max(abs(tilt_left),abs(tilt_right))
+    elif mode=='direction':
+            return [[tilt_right,i_right,'r'],[tilt_left,i_left,'l']]
+    elif mode=='l':
+        return tilt_left
+    elif mode=='r':
+        return tilt_right
 
-def get_new_angles(aim,link,t):
+
+def get_new_angles(aim,link,t,ang_old=False,lim=8e-6):
     i = (link-2)%3
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
     
-    ang_l_in=aim.tele_ang_l_fc(i_left,t)
-    ang_r_in=aim.tele_ang_r_fc(i_right,t)
-    
+    if ang_old==False:
+        ang_l_in=aim.tele_ang_l_fc(i_left,t)
+        ang_r_in=aim.tele_ang_r_fc(i_right,t)
+    else:
+        ang_l_in=ang_old[0]
+        ang_r_in=ang_old[1]
+
+    #[[tilt_right,i_right,'r'],[tilt_left,i_left,'l']] = get_FOV(ang_old,wfe,aim,link,t,m='tilt',mode='direction')
+
+    #if abs(tilt_right)>lim:
+    #    tilt_right =lambda ang_sol:  NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'l',False,'all',mode='self',precision=0,angles=[ang_sol,angles[0]])[m]
+    #elif abs(tilt_left)>lim:
+    #    tilt_left =lambda ang_sol:  NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'l',False,'all',mode='self',precision=0,angles=[ang_sol,angles[0]])[m]
+            
     angles = [ang_l_in,ang_r_in]
     
     return angles
 
-def get_SS(wfe,aim,link,ret={},m='tilt'):
+def get_SS(wfe,aim,link,ret={},t_all={},m='tilt'):
     #if FOV_lim==False:
     #    FOV_lim=wfe.FOV
     
@@ -686,6 +729,9 @@ def get_SS(wfe,aim,link,ret={},m='tilt'):
     if ret=={}:
         for SC in range(1,4):
             ret[str(SC)]={}
+    if t_all=={}:
+        for SC in range(1,4):
+            t_all[str(SC)]={}
     
     t0 = wfe.t_all[3]
     t_end = wfe.t_all[-3]
@@ -700,7 +746,7 @@ def get_SS(wfe,aim,link,ret={},m='tilt'):
         try:
             t_solve = scipy.optimize.brentq(FOV_func,t_adjust[-1],t_end,xtol=1)
             t_adjust.append(t_solve)
-            angles_new = get_new_angles(aim,link,t_solve)
+            angles_new = get_new_angles(aim,link,t_solve,ang_old = False,lim=FOV_lim)
             angles_all.append(angles_new)
         except ValueError,e:
             print e
@@ -713,12 +759,14 @@ def get_SS(wfe,aim,link,ret={},m='tilt'):
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
 
     ang_l_tele = lambda t: get_SS_func(t_adjust,angles_all[:,0],t)
-    ang_r_tele = lambda t: get_SS_func(t_adjust,angles_all[:,2],t)
+    ang_r_tele = lambda t: get_SS_func(t_adjust,angles_all[:,1],t)
     
     ret[str(i_left)]['l'] = ang_l_tele
     ret[str(i_right)]['r'] = ang_r_tele
-
-    return ret
+    t_all[str(i_left)]['l'] = np.array(t_adjust)
+    t_all[str(i_right)]['r'] = np.array(t_adjust)
+    
+    return ret,t_all
 
 def get_SS_func(x,y,x_check):
     A = [t for t in x if t<x_check]

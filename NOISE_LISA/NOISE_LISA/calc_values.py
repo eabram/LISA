@@ -107,13 +107,32 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
             #ret['mean'][str(i)][s]=mean
             #ret['var'][str(i)][s]=var
 
+    # Add lists
+    if meas[0]=='all_val' or meas[0]=='t_adjust':
+        try:
+            aim.t_adjust_var={}
+            for SC in aim.t_adjust.keys():
+                aim.t_adjust_var[SC]={}
+                for s in aim.t_adjust[SC].keys():
+                    aim.t_adjust_var[SC][s] = aim.t_adjust[SC][s]*0
+            ret_sort['t_adjust']['mean'] = aim.t_adjust
+            ret_sort['t_adjust']['var'] = aim.t_adjust_var
+
+        except AttributeError:
+            ret_sort['t_adjust']['mean'] = np.nan
+            ret_sort['t_adjust']['var'] = np.nan
+            pass
 
     ret_all={}
     if meas[0]=='all_val':
         meas = calc.keys()
 
     for m in meas:
-        title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
+        try:
+            title = 'Title:: Telescope control: '+wfe.tele_control+', PAAM control: '+ wfe.PAAM_control_method
+        except TypeError:
+            title = 'Title:: Telescope control: user defined'+', PAAM control: '+ wfe.PAAM_control_method
+
         option = 'Option :: tele_'+aim.tele_option+'__PAAM_'+aim.PAAM_option
         iteration = 'Iteration:: '+ str(aim.iteration)
         measurement = 'Measurement:: '+m
