@@ -66,10 +66,10 @@ class PAA():
         print('')
         print('Importing Orbit')
         tic=time.clock()
-        Orbit=orbit(home=self.home,filename=self.filename,directory_imp=self.directory_imp,num_back=self.num_back,scale=self.scale,read_max=self.read_max,plot_on=False,timeunit=self.timeunit)
+        Orbit=orbit(home=self.home,filename=self.filename,directory_imp=self.directory_imp,num_back=self.num_back,scale=self.scale,read_max=self.read_max,plot_on=False,timeunit=self.timeunit,LISA_opt=self.LISA)
         print(str(Orbit.linecount)+' datapoints')
         self.orbit = Orbit
-        utils.LISA_obj(self,type_select='cache')
+        utils.LISA_obj(self,type_select=self.LISA)
         print('Done in '+str(time.clock()-tic))
         self.SC = range(1,4)
 

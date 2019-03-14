@@ -16,7 +16,10 @@ def do_run(input_param,para):
         test_calc=False
     else:
         test_calc=input_param['test_calc']
-
+    
+    #self.LISA_opt = LISA_opt
+    print('zzzzzzzzzzzz')
+    print(LISA_opt)
     filename_list=[]
     filename_done=[]
     PAA_res={}

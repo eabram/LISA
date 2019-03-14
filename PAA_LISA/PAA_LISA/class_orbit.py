@@ -22,6 +22,7 @@ class orbit():
         self.scale=kwargs.pop('scale',1)
         self.read_max=kwargs.pop('read_max','all')
         self.timeunit = kwargs.pop('timeunit','days')
+        self.LISA_opt = kwargs.pop('LISA_opt',True)
         
         if self.filename=='None':
             print('Please select filename')
@@ -106,7 +107,10 @@ class orbit():
         #print(self.t)
         #print('')
         Dt=self.t[1]-self.t[0] # Assuming Dt s constant
-        self.lisa_obj=SampledLISA(p[0],p[1],p[2],Dt,self.t[0],2)
+        if 'synthlisa' in str(type(self.LISA_opt)):
+            self.lisa_obj = self.LISA_opt
+        else:
+            self.lisa_obj=SampledLISA(p[0],p[1],p[2],Dt,self.t[0],2)
         self.p=p
         self.Dt=Dt
         self.pos=[self.t,p]

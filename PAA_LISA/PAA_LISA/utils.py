@@ -252,7 +252,7 @@ def LISA_obj(OBJ,type_select='cache'):
         elif type_select=='other':
             OBJ.LISA = lisa
     else:
-        OBJ.LISA=False
+        OBJ.LISA=type_select
     return 0
 
 def i_slr(i,side='all'):
