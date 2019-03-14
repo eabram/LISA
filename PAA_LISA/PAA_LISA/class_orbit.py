@@ -1,5 +1,6 @@
 ##!/usr/bin/env python
-
+from imports import *
+import utils
 from synthlisa import *
 import numpy as np
 import os
@@ -22,7 +23,7 @@ class orbit():
         self.scale=kwargs.pop('scale',1)
         self.read_max=kwargs.pop('read_max','all')
         self.timeunit = kwargs.pop('timeunit','days')
-        self.LISA_opt = kwargs.pop('LISA_opt',True)
+        self.LISA_opt = kwargs.pop('LISA_opt',False)
         
         if self.filename=='None':
             print('Please select filename')
@@ -96,7 +97,8 @@ class orbit():
                     pass
                 if read_check==True:
                     line_count=line_count+1
-        p=np.array([p[0],p[1],p[2]],np.float64)
+        p_first = np.array([p[0],p[1],p[2]],np.float64)
+        p = utils.high_precision(p_first)
         if self.timeunit == 'days':
             self.t=(np.array(t) - np.array([t[0]]*len(t)))*day2sec #... in sec, fist point at t=0
         elif self.timeunit == 'years':

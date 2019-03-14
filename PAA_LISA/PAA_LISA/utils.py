@@ -244,7 +244,7 @@ def LISA_obj(OBJ,type_select='cache'):
     lisa_cache=CacheLISA(lisa_orb)
 
     OBJ.t_all = OBJ.orbit.t
-    if OBJ.LISA==True:
+    if type(type_select)==str:
         if type_select=='cache':
             OBJ.LISA = lisa_cache
         elif type_select=='Py':
@@ -562,14 +562,17 @@ def velocity_func(OBJ,hstep=1.0):
 
     return 0
 
+def high_precision(p):
+    Y = p
+    for i in range(0,len(p)):
+        y_p=[]
+        for j in range(0,len(p[i][0])):
+            y = p[i,:,j]
+            y_inv = scipy.fftpack.ifft(y)
+            y_new = scipy.fftpack.fft(y_inv)
+            Y[i,:,j] = np.real(y_new)
 
-
-
-
-
-
-
-
+    return Y
 
 
 

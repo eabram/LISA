@@ -20,6 +20,7 @@ import plotfile2
 import save_fig
 import writefile
 import utils
+import scipy.fftpack
 
 year2sec=32536000
 day2sec=year2sec/365.25

@@ -52,7 +52,7 @@ class PAA():
         print('')
             
         self.delay = kwargs.pop('delay',True)
-        self.LISA = kwargs.pop('LISA',False)
+        self.LISA_opt = kwargs.pop('LISA_opt',False)
         self.arm_influence = kwargs.pop('arm_influence',True)
         self.tstep = kwargs.pop('tstep',False)
         self.valorfunc = kwargs.pop('valorfunc','Value')
@@ -66,10 +66,10 @@ class PAA():
         print('')
         print('Importing Orbit')
         tic=time.clock()
-        Orbit=orbit(home=self.home,filename=self.filename,directory_imp=self.directory_imp,num_back=self.num_back,scale=self.scale,read_max=self.read_max,plot_on=False,timeunit=self.timeunit,LISA_opt=self.LISA)
+        Orbit=orbit(home=self.home,filename=self.filename,directory_imp=self.directory_imp,num_back=self.num_back,scale=self.scale,read_max=self.read_max,plot_on=False,timeunit=self.timeunit,LISA_opt=self.LISA_opt)
         print(str(Orbit.linecount)+' datapoints')
         self.orbit = Orbit
-        utils.LISA_obj(self,type_select=self.LISA)
+        utils.LISA_obj(self,type_select=self.LISA_opt)
         print('Done in '+str(time.clock()-tic))
         self.SC = range(1,4)
 
