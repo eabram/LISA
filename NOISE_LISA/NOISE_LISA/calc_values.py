@@ -108,19 +108,28 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
             #ret['var'][str(i)][s]=var
 
     # Add lists
-    if meas[0]=='all_val' or meas[0]=='t_adjust':
+    lists=['t_adjust','tele_ang_adjust']
+    if meas[0]=='all_val' or meas[0] in lists:
         try:
-            aim.t_adjust_var={}
+            ret_sort['t_adjust']={}
+            ret_sort['t_adjust']['mean']=aim.t_adjust
+            ret_sort['tele_ang_adjust']={}
+            ret_sort['tele_ang_adjust']['mean']=aim.tele_ang_adjust 
+            ret_sort['t_adjust']['var']={}
+            ret_sort['tele_ang_adjust']['var']={}
+            
             for SC in aim.t_adjust.keys():
-                aim.t_adjust_var[SC]={}
+                ret_sort['t_adjust']['var'][SC]={}
+                ret_sort['tele_ang_adjust']['var'][SC]={}
                 for s in aim.t_adjust[SC].keys():
-                    aim.t_adjust_var[SC][s] = aim.t_adjust[SC][s]*0
-            ret_sort['t_adjust']['mean'] = aim.t_adjust
-            ret_sort['t_adjust']['var'] = aim.t_adjust_var
+                    ret_sort['t_adjust']['var'][SC][s]  = aim.t_adjust[SC][s]*0
+                    ret_sort['tele_ang_adjust']['var'][SC][s]  = aim.tele_ang_adjust[SC][s]*0
 
         except AttributeError:
             ret_sort['t_adjust']['mean'] = np.nan
             ret_sort['t_adjust']['var'] = np.nan
+            ret_sort['tele_ang_adjust']['mean'] = np.nan
+            ret_sort['tele_ang_adjust']['var'] = np.nan
             pass
 
     ret_all={}

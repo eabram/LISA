@@ -449,115 +449,21 @@ class WFE():
             angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite',ksi=ksi)
             point_val = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',aim.beam_l_ang(i_right,t-tdel),'all',mode='self',ksi=ksi,precision=1)
         
-        #for k in point_val.keys():
-        #    globals()[k] = point_val[k]
-
-        #try:
-        #    val = aim.get_received_beam_duration(i_self,t,side,ksi=ksi)
-        #except AttributeError,e:
-        #    if str(e)=="WFE instance has no attribute 'aim'":
-        #        val = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
-        #        #start,end,direction,target_pos,target_direction,beam_send_coor,tele_rec_coor,delay_s,delay_r = self.aim0.get_received_beam_duration(i_self,t,side,ksi=ksi)
-
-        #if side=='l':
-        #    tdel = self.data.L_rl_func_tot(i_self,t)
-        #    if self.data.calc_method=='Waluschka':
-        #        tdel0=tdel
-        #    elif self.data.calc_method=='Abram':
-        #        tdel0=0
-
-        #    start = aim.tele_r_start(i_left,t-tdel)
-        #    end = aim.tele_l_start(i_self,t-tdel0)
-        #    coor_start_beam = aim.beam_r_coor(i_left,t-tdel)
-        #    coor_start_tele = aim.tele_r_coor(i_left,t-tdel)
-        #    coor_end_beam = aim.beam_l_coor(i_self,t)
-        #    coor_end_tele = aim.tele_l_coor(i_self,t)
-        #elif side=='r':
-        #    tdel = self.data.L_rr_func_tot(i_self,t)
-        #    if self.data.calc_method=='Waluschka':
-        #        tdel0=tdel
-        #    elif self.data.calc_method=='Abram':
-        #        tdel0=0
-        #    start = aim.tele_l_start(i_right,t-tdel)
-        #    end = aim.tele_r_start(i_self,t-tdel0)
-        #    coor_start_beam = aim.beam_l_coor(i_right,t-tdel)
-        #    coor_start_tele = aim.tele_l_coor(i_right,t-tdel)
-        #    coor_end_beam = aim.beam_r_coor(i_self,t)
-        #    coor_end_tele = aim.tele_r_coor(i_self,t)
-
-        #[zoff_0,yoff_0,xoff_0] = LA.matmul(coor_start_beam,end-start)
-
-
-
-        ##n_beam = val['coor_start_beam'][1]
-        ##n_tele = val['coor_end_tele'][1]
-        ##target_pos_beam = val['target_pos_beam']
-        ##target_pos_tele = val['target_pos_tele']
-        ##beam_send_coor = val['coor_start_beam']
-        ##tele_rec_coor = val['coor_end_tele']
-        ##target_direction = val['target_direction']
-
-
-   
-        ##[zoff_0,yoff_0,xoff_0] = target_pos_beam # Offset in beam send frame
-
-        ## Beam direction:
-        #bd_original_frame = np.array(coor_start_beam[0])
-        #bd_receiving_frame = LA.matmul(coor_end_tele,bd_original_frame)
         
         angx_tilt = np.arctan(abs(point_val.get("bd_receiving_frame")[2]/point_val.get("bd_receiving_frame")[0]))*np.sign(np.dot(point_val.get("bd_original_frame"),point_val.get("coor_end")[2]))
 
         angy_tilt = np.arctan(abs(point_val.get("bd_receiving_frame")[1]/point_val.get("bd_receiving_frame")[0]))*np.sign(np.dot(point_val.get("bd_original_frame"),point_val.get("coor_end")[1]))
 
-        #try:
-        #    [piston,z_extra] = self.z_solve(xoff,yoff,zoff,ret='all')
-        #except:
-        #    [piston,z_extra] = [np.nan,np.nan]
-        #    ##print(xoff_0,yoff_0,zoff_0)
-         
-        #R = self.R(piston)
-        #R_vec_beam_send = np.array([(point_val.get("R")**2 - point_val.get("xoff")**2 - point_val.get("yoff")**2)**0.5,point_val.get("yoff"),point_val.get("xoff")])
-        #R_vec_origin = LA.matmul(np.linalg.inv(point_val.get("coor_start")),R_vec_beam_send)
-        #R_vec_tele_rec = -LA.matmul(point_val.get("coor_end"),R_vec_origin)
-
-        
-#        if type(ret)!=list and ret=='all_val' or '_func_' in ret:
-#            # Tilt by function
-#            if side=='l':
-#                tdel = self.data.L_rl_func_tot(i_self,t)
-#                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite',ksi=ksi)
-#                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite',ksi=ksi)
-#                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',aim.beam_r_ang(i_left,t-tdel),'angx',mode='self',ksi=ksi)
-#                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'l',aim.beam_r_ang(i_left,t-tdel),'angy',mode='self',ksi=ksi)
-#
-#            elif side=='r':
-#                tdel = self.data.L_rr_func_tot(i_self,t)
-#                angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',aim.beam_l_ang(i_right,t-tdel),'angx',mode='opposite',ksi=ksi)
-#                angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_right,t-tdel,'l',aim.beam_l_ang(i_right,t-tdel),'angy',mode='opposite',ksi=ksi)
-#                angx_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',aim.beam_l_ang(i_right,t-tdel),'angx',mode='self',ksi=ksi)
-#                angy_func_rec = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_self,t,'r',aim.beam_l_ang(i_right,t-tdel),'angy',mode='self',ksi=ksi)
-
-        # Tilt by offset
-        #angx_off = np.arctan(abs(R_vec_tele_rec[2]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[2])
-        #angy_off = np.arctan(abs(R_vec_tele_rec[1]/R_vec_tele_rec[0]))*np.sign(R_vec_tele_rec[1])
-        
+               
         # Zernike polynomials
         angx_tot = point_val.get("angx_func_rec")
         angy_tot = point_val.get("angy_func_rec")
         
-        #r = ((point_val.get("yoff")**2)+(point_val.get("xoff")**2))**0.5
         u=self.u_rz_calc(point_val.get("r"),point_val.get("zoff"),point_val.get("angx_func_rec"),point_val.get("angy_func_rec"),xlist=False,ylist=False,aim=aim)
 
-        #u = self.u_rz_calc(r,point_val.get("zoff"),i_self,t,side,xlist=[0],ylist=[0])
-        #power = (abs(u)**2)[0]*np.cos(angx_tot)*np.cos(angy_tot)
         power = (abs(u)**2)[0]*np.cos(point_val.get("angx_func_rec"))*np.cos(point_val.get("angy_func_rec"))
         vec = point_val.get("bd_receiving_frame")
-        #FOV_beamline = np.arccos(-vec[0]/np.linalg.norm(vec))
-        #FOV_wavefront = LA.angle(R_vec_origin,point_val.get("coor_end")[0])
-        #FOV_position = LA.angle(point_val.get("start")-point_val.get("end"),point_val.get("coor_end")[0])
-        #tilt=FOV_wavefront
-        #wfront_direction = np.array([np.cos(angy_tot)*np.cos(angx_tot),np.sin(angy_tot),np.sin(angx_tot)])[0]
-        #tilt = PAA_LISA.la().angle(R_vec_tele_rec,np.array([1,0,0]))
+        
         beam_inc_tele_frame = point_val.get("bd_receiving_frame")
         if side=='l':
             PAAM_ang=aim.beam_l_ang(i_self,t)
