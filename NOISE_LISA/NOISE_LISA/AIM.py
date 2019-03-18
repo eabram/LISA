@@ -31,8 +31,12 @@ class AIM():
             self.aim0 = kwargs.pop('aim0',False)
             self.aim_old = kwargs.pop('aim_old',False)
             if self.aim_old==False:
-                print('Please select init or previous aim iteration')
-                raise ValueError
+                if 'SS' in self.tele_method:
+                    self.aim_old=True
+                    self.aim0=True
+                else:
+                    print('Please select init or previous aim iteration')
+                    raise ValueError
 
         self.count=kwargs.pop('count',0)
         print('')
@@ -314,7 +318,7 @@ class AIM():
 
     def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False,option='wavefront'):
         self.option_tele=option
-        if self.init_set==False:
+        if self.init_set==False and 'SS' not in method:
             self.get_sampled_pointing(option='previous')
             self.tele_control_ang_fc(option=option)
             tele_l = self.tele_ang_l_fc
@@ -336,7 +340,7 @@ class AIM():
         if method=='full_control':
             tele_l = tele_l
             tele_r = tele_r
-
+       
         elif method=='no_control':
             #self.do_static_tele_angle('tele')
             if tele_ang_extra==False:
@@ -539,9 +543,17 @@ class AIM():
         print(' ')
 
         if self.init_set==False:
-            self.PAAM_control_ang_fc(option=option)
-            ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
-            ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
+            try:
+                self.PAAM_control_ang_fc(option=option)
+                ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
+                ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
+            except AttributeError,e:
+                if option=='center':
+                    ang_fc_l = self.wfe.data.PAA_func['l_out']
+                    ang_fc_r = self.wfe.data.PAA_func['r_out']
+                    pass
+                else:
+                    raise AttributeError(str(e))
             self.PAAM_fc_ang_l = ang_fc_l
             self.PAAM_fc_ang_r = ang_fc_r
 
@@ -555,8 +567,12 @@ class AIM():
         # Obtaining PAAM angles for 'fc' (full_control), 'nc' (no_control) and 'SS' (step and stair)
         
         if method=='full_control':
-            ang_l = ang_fc_l
-            ang_r = ang_fc_r
+            try:
+                ang_l = ang_fc_l
+                ang_r = ang_fc_r
+            except UnboundLocalError:
+                ang_l=self.wfe.data.PAA_func['l_out']
+                ang_r=self.wfe.data.PAA_func['r_out']
 
         elif method=='no_control':
             #self.do_static_tele_angle('PAAM')

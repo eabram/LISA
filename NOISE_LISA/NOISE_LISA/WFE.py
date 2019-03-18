@@ -132,7 +132,12 @@ class WFE():
         aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0,count=count)
         aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
         out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra,option=option_PAAM)
-        
+        try:
+            aim.tele_option
+        except AttributeError:
+            aim.tele_option = option_tele
+            aim.PAAM_option = option_PAAM
+
         
         return out
 

@@ -706,7 +706,10 @@ def get_FOV(angles,wfe,aim,link,t,m='tilt',mode='normal'):
     tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'r',False,'all',mode='self',precision=0,angles=[angles[1],angles[0]])[m]
     
     if mode=='normal':
-        return max(abs(tilt_left),abs(tilt_right))
+        ret =  max(abs(tilt_left),abs(tilt_right))
+        print(ret)
+        return(ret)
+
     elif mode=='direction':
         return [[tilt_right,i_right],[tilt_left,i_left]]
     elif mode=='l':
@@ -824,7 +827,10 @@ def get_SS(wfe,aim,link,ret={},t_all={},tele_ang={},m='tilt'):
     tele_ang[str(i_left)]['l'] = ang_l_tele_list
     tele_ang[str(i_right)]['r'] = ang_r_tele_list
 
-    
+    print('')
+    print(ang_l_tele_list)
+    print('')
+
     return ret,t_all,tele_ang
 
 def get_SS_func(x,y,x_check):
