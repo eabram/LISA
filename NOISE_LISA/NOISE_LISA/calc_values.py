@@ -82,9 +82,9 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
 
     ret_sort={}
     for meanvar in ret.keys():
-        for SC in ret[meanvar].keys():
-            for s in ret[meanvar][SC].keys():
-                for m in ret[meanvar][SC][s].keys():
+        for i in SC:
+            for s in side:
+                for m in ret[meanvar][str(i)][s].keys():
                     try:
                         ret_sort[m]
                     except KeyError:
@@ -93,22 +93,22 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
                         ret_sort[m]['var']={}
 
                     try:
-                        ret_sort[m][meanvar][SC]
+                        ret_sort[m][meanvar][str(i)]
                     except KeyError:
-                        ret_sort[m][meanvar][SC]={}
+                        ret_sort[m][meanvar][str(i)]={}
 
                     try:
-                        ret_sort[m][meanvar][SC][s]
+                        ret_sort[m][meanvar][str(i)][s]
                     except KeyError:
-                        ret_sort[m][meanvar][SC][s]={}
+                        ret_sort[m][meanvar][str(i)][s]={}
 
-                    ret_sort[m][meanvar][SC][s] = ret[meanvar][SC][s][m]
+                    ret_sort[m][meanvar][str(i)][s] = ret[meanvar][str(i)][s][m]
 
             #ret['mean'][str(i)][s]=mean
             #ret['var'][str(i)][s]=var
 
     # Add lists
-    lists=['t_adjust','tele_ang_adjust']
+    lists=['t_adjust','tele_ang_adjust','adjust']
     if meas[0]=='all_val' or meas[0] in lists:
         try:
             ret_sort['t_adjust']={}
@@ -118,12 +118,12 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
             ret_sort['t_adjust']['var']={}
             ret_sort['tele_ang_adjust']['var']={}
             
-            for SC in aim.t_adjust.keys():
-                ret_sort['t_adjust']['var'][SC]={}
-                ret_sort['tele_ang_adjust']['var'][SC]={}
-                for s in aim.t_adjust[SC].keys():
-                    ret_sort['t_adjust']['var'][SC][s]  = aim.t_adjust[SC][s]*0
-                    ret_sort['tele_ang_adjust']['var'][SC][s]  = aim.tele_ang_adjust[SC][s]*0
+            for i in SC:
+                ret_sort['t_adjust']['var'][str(i)]={}
+                ret_sort['tele_ang_adjust']['var'][str(i)]={}
+                for s in side:
+                    ret_sort['t_adjust']['var'][str(i)][s]  = aim.t_adjust[str(i)][s]*0
+                    ret_sort['tele_ang_adjust']['var'][str(i)][s]  = aim.tele_ang_adjust[str(i)][s]*0
 
         except AttributeError:
             ret_sort['t_adjust']['mean'] = np.nan
@@ -132,6 +132,16 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
             ret_sort['tele_ang_adjust']['var'] = np.nan
             pass
 
+        ret_sort['adjust']={}
+        for k in ret_sort['t_adjust'].keys():
+            ret_sort['adjust'][k]={}
+            for SC in ret_sort['t_adjust'][k].keys():
+                ret_sort['adjust'][k][SC]={}
+                for s in ret_sort['t_adjust'][k][SC].keys():
+                    ret_sort['adjust'][k][SC][s]={}
+                    ret_sort['adjust'][k][SC][s]['x'] = ret_sort['t_adjust'][k][SC][s]
+                    ret_sort['adjust'][k][SC][s]['y'] = ret_sort['tele_ang_adjust'][k][SC][s]
+    
     ret_all={}
     if meas[0]=='all_val':
         meas = calc.keys()

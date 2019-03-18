@@ -720,8 +720,13 @@ def get_new_angles(aim,link,t,ang_old=False,lim=8e-6,margin=0.9,wfe=False):
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
     
     if ang_old==False or wfe==False:
-        ang_l_in=aim.tele_ang_l_fc(i_left,t)
-        ang_r_in=aim.tele_ang_r_fc(i_right,t)
+        try:
+            ang_l_in=aim.tele_ang_l_fc(i_left,t)
+            ang_r_in=aim.tele_ang_r_fc(i_right,t)
+        except AttributeError, e:
+            if  str(e)=="AIM instance has no attribute 'tele_ang_l_fc'":
+                ang_l_in = np.radians(-30)
+                ang_r_in = np.radians(30)
         angles = [ang_l_in,ang_r_in]
     
     else:

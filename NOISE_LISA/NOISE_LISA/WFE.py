@@ -153,7 +153,7 @@ class WFE():
             del self.aim
         except AttributeError:
             pass
-
+        
         aim0 = self.get_pointing(tele_method = 'no_control',PAAM_method='no_control',iteration=0,tele_ang_extra=tele_ang_extra,PAAM_ang_extra=PAAM_ang_extra,init=True,sampled=False,option_tele=option_tele,option_PAAM=option_PAAM)
        
         if iteration==0:

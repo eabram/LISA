@@ -364,8 +364,16 @@ class AIM():
             t_all={}
             tele_ang_adjust={}
             for link in range(1,4):
-                ret,t_all,tele_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust)
-            
+                if self.count==0:
+                    try:
+                        self.beam_r_ang
+                    except AttributeError:
+                        self.beam_l_ang = self.wfe.data.PAA_func['l_out']
+                        self.beam_r_ang = self.wfe.data.PAA_func['r_out']
+                    ret,t_all,tele_ang_adjust = pack.functions.get_SS(self.wfe,self,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust)
+                else:
+                    ret,t_all,tele_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust)
+
             self.t_adjust = t_all
             self.tele_ang_adjust = tele_ang_adjust
 
@@ -382,9 +390,6 @@ class AIM():
             print(method[0])
             tele_l = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'l',x=method[1],y=method[2])
             tele_r = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'r',x=method[1],y=method[2])
-            
-            print(tele_l)
-            print(tele_r)
             
 
         else:
@@ -552,6 +557,7 @@ class AIM():
         if method=='full_control':
             ang_l = ang_fc_l
             ang_r = ang_fc_r
+
         elif method=='no_control':
             #self.do_static_tele_angle('PAAM')
             if PAAM_ang_extra==False:
