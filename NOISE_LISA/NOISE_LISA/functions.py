@@ -461,19 +461,19 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
+          
             if angles==False:
                 tele_ang = aim.tele_r_ang(i_left,t-tdel)
-                coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
-                coor_end = aim.tele_l_coor(i_self,t)
-                start = aim.tele_r_start(i_left,t-tdel)
-                end = aim.tele_l_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
-            else:
-                tele_ang=angles[1]
+                tele_ang_end = aim.tele_l_ang(i_self,t-tdel0)
                 PAAM_ang = aim.beam_r_ang(i_left,t-tdel)
-                coor_start = beam_coor_out(wfe,i_left,t-tdel,angles[1],PAAM_ang)
-                coor_end = coor_tele(wfe,i_self,t,angles[0])
-                start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_left,t-tdel)
-                end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+            elif len(angles)>=2:
+                tele_ang_end = angles[0]
+                tele_ang = angles[2]
+                PAAM_ang = aim.beam_r_ang(i_left,t-tdel)
+            coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
+            coor_end = coor_tele(wfe,i_self,t,tele_ang_end)
+            start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_left,t-tdel)
+            end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
 
         
         elif side=='r':
@@ -482,19 +482,19 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
+
             if angles==False:
                 tele_ang = aim.tele_l_ang(i_right,t-tdel)
-                coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
-                coor_end = aim.tele_r_coor(i_self,t)
-                start = aim.tele_l_start(i_right,t-tdel)+coor_start[1]*ksi[1]+coor_start[2]*ksi[0]
-                end = aim.tele_r_start(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
-            else:
-                tele_ang=angles[1]
+                tele_ang_end = aim.tele_r_ang(i_self,t-tdel0)
                 PAAM_ang = aim.beam_l_ang(i_right,t-tdel)
-                coor_start = beam_coor_out(wfe,i_right,t-tdel,angles[1],PAAM_ang)
-                coor_end = coor_tele(wfe,i_self,t,angles[0])
-                start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_right,t-tdel)
-                end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
+            elif len(angles)>=2:
+                tele_ang_end = angles[0]
+                tele_ang = angles[2]
+                PAAM_ang = aim.beam_l_ang(i_right,t-tdel)
+            coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
+            coor_end = coor_tele(wfe,i_self,t,tele_ang_end)
+            start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_right,t-tdel)
+            end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
 
                 
         [zoff,yoff,xoff]=LA.matmul(coor_start,end-start)
@@ -519,6 +519,10 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         return angx
     elif ret=='tilt':
         return (angx**2+angy**2)**0.5
+    elif ret=='xoff':
+        return xoff
+    elif ret=='yoff':
+        return yoff
     elif ret=='all':
         ret_val={}
         ret_val['start']=start
@@ -555,16 +559,67 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         return ret_val
 
 
+def rotate_tele_wavefront(wfe,aim,link,t,count_max=np.inf,lim=2e-16,scale=1):
+    i = (link-2)%3
+    [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
+    tdel = wfe.data.L_rl_func_tot(i_left,t)
+    angles=[aim.tele_l_ang(i_left,t),aim.beam_l_ang(i_left,t),aim.tele_r_ang(i_right,t-tdel),aim.beam_r_ang(i_right,t-tdel)]
+    #print(angles)
+
+
+    do=True
+    count=0
+    da0=[]
+    da2=[]
+    while do:
+        angles_new0 = scale*get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'angx',mode='self',precision=0,angles=angles)+angles[0]
+        da0.append(angles_new0 - angles[0])
+        angles[0]=angles_new0
+
+        angles_new2 = scale*get_wavefront_parallel(wfe,aim,i_right,t-tdel,'r',False,'angx',mode='self',precision=0,angles=[angles[2],angles[3],angles[0],angles[1]])+angles[2]
+        da2.append(angles_new2 - angles[2])
+        angles[2]=angles_new2
+        count=count+1
+        #print(da0[-1],da2[-1])
+        if count>=2:
+            if abs(da0[-1])==abs(da0[-2]) or abs(da2[-1])==abs(da2[-2]):
+                #print('No convergence')
+                count=count_max
+                do=False
+        if max(abs(da0[-1]),abs(da2[-1]))<lim or count>=count_max:
+            do=False
+
+    
+    if count>=count_max:
+        return False
+    else:
+        return angles
+
+def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret):
+    [i_left,i_right,link] = PAA_LISA.utils.i_slr(SC)
+
+    import scipy.optimize
+    
+    f = lambda PAAM_ang: NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,SC,t,'l',PAAM_ang,ret,mode='opposite',precision=0,ksi=[0,0],angles=False)
+    try:
+        ang_solve = scipy.optimize.brentq(f,np.float64(-0.1),np.float64(0.1),rtol=1e-10)
+        if abs(f(ang_solve))>1e-10 and ret=='angy':
+            ang_solve=np.nan
+    except ValueError:
+        ang_solve=np.nan
+    
+    return ang_solve
 
 
 
 
-
-
-
-
-
-
+#def get_tele_fc(wfe,aim,i,t,side,count_max=np.inf,lim=1e-10,scale=1):
+#    if side=='l':
+#        ang = rotate_tele_wavefront(wfe,aim,PAA_LISA.utils.get_link(i,'l'),t,count_max=count_max,lim=lim,scale=scale)[0]
+#    elif side=='r':
+#       ang =rotate_tele_wavefront(wfe,aim,PAA_LISA.utils.get_link(i,'r'),t+wfe.data.L_rl_func_tot(i_left,t),count_max=count_max,lim=lim,scale=scale)[2]
+#
+#    return ang 
 
 
 
@@ -698,16 +753,44 @@ def interpolate(x,y,method='interp1d'):
     else:
         print('Please select proper interpolation method (interp1d)')
 
+def get_FOV_optimized_PAAM(angles,wfe,aim,link,t,m='tilt',mode='normal'):
+    ang_l_tele=angles[0]
+    ang_r_tele = angles[1]
+    ang_l_PAAM0=0
+    ang_r_PAAM0=0
+
+    f_solve  = lambda ang1,ang2,_mode: get_FOV([ang_l_tele,ang1,ang_r_tele,ang2],wfe,aim,link,t,mode=_mode)
+    ang_l_PAAM_new = scipy.optimize.minimize(lambda ang: f_solve(ang,ang_r_PAAM0,mode),x0=0)['fun']
+    ang_r_PAAM_new = scipy.optimize.minimize(lambda ang: f_solve(ang_l_PAAM0,ang,mode),x0=0)['fun']
+
+    angles_new = [ang_l_tele,ang_l_PAAM_new,ang_r_tele,ang_r_PAAM_new]
+    FOV = f_solve(ang_l_PAAM_new,ang_r_PAAM_new,'direction')
+
+    return [angles_new,FOV]
+    
+
+
 def get_FOV(angles,wfe,aim,link,t,m='tilt',mode='normal'):
     i = (link-2)%3
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
     
-    tilt_left = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'all',mode='self',precision=0,angles=angles)[m]
-    tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'r',False,'all',mode='self',precision=0,angles=[angles[1],angles[0]])[m]
+    #if componenet=='both':
+    #    tilt_left_func = lambda ang_PAAM_l: NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'all',mode='self',precision=0,angles=[angles[0],False,angles[1],ang_PAAM_l],component=component)[m]
+
+    #    tilt_right_func = lambda ang_PAAM_r: NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'r',False,'all',mode='self',precision=0,angles=[angles[2],False,angles[0],angles[1]],component=component)[m]
+    #    PAAM_l = scipy.optimize.minimize(tilt_left_func,x0=0)['fun']
+    #    PAAM_r = scipy.optimize.minimize(tilt_right_func,x0=0)['fun']
+
+    #    angles = [angles[0],PAAM_l,angles[2],PAAM_r]
+    #    componenet='tele'
     
+    tilt_left = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_left,t,'l',False,'all',mode='self',precision=0,angles=angles)[m]
+    tilt_right = NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i_right,t,'r',False,'all',mode='self',precision=0,angles=[angles[2],angles[3],angles[0],angles[1]])[m]
+    
+
     if mode=='normal':
         ret =  max(abs(tilt_left),abs(tilt_right))
-        print(ret)
+        #print(ret)
         return(ret)
 
     elif mode=='direction':
@@ -718,61 +801,67 @@ def get_FOV(angles,wfe,aim,link,t,m='tilt',mode='normal'):
         return tilt_right
 
 
-def get_new_angles(aim,link,t,ang_old=False,lim=8e-6,margin=0.9,wfe=False):
+def get_new_angles(aim,link,t,ang_old=False,lim=8e-6,margin=0.9,wfe=False,component='tele'):#...only works with 'tele'
     i = (link-2)%3
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
     
-    if ang_old==False or wfe==False:
-        try:
-            ang_l_in=aim.tele_ang_l_fc(i_left,t)
-            ang_r_in=aim.tele_ang_r_fc(i_right,t)
-        except AttributeError, e:
-            if  str(e)=="AIM instance has no attribute 'tele_ang_l_fc'":
-                ang_l_in = np.radians(-30)
-                ang_r_in = np.radians(30)
-        angles = [ang_l_in,ang_r_in]
-    
-    else:
-        ang_l_in=ang_old[0]
-        ang_r_in=ang_old[1]
+    if ang_old==False:
+        if component=='tele':
+            ang_l = aim.tele_ang_l_fc(i_left,t)
+            ang_r = aim.tele_ang_r_fc(i_right,t)
 
-        [[tilt_right,i_right],[tilt_left,i_left]] = get_FOV(ang_old,wfe,aim,link,t,m='tilt',mode='direction')
+            angles=[ang_l,False,ang_r,False]
         
+    else:
+        ang_old[1] = False
+        ang_old[3] = False
+        [ang_l_tele,ang_l_PAAM,ang_r_tele,ang_r_PAAM] = ang_old
+        [[tilt_right,i_right],[tilt_left,i_left]] = get_FOV(ang_old,wfe,aim,link,t,m='tilt',mode='direction')
+        [[angx_r,i_right],[angx_l,i_left]] = get_FOV(ang_old,wfe,aim,link,t,m='angx_func_rec',mode='direction')
+        
+        #print(tilt_left,tilt_right)
+        #print(angx_r,angx_l)
+
         if tilt_right>=lim*0.99:
-            f_solve = lambda ang: get_FOV([ang_l_in,ang],wfe,aim,link,t,m='angx_func_rec',mode='r') +lim*margin
+            f_solve = lambda ang: get_FOV([ang_l_tele,ang_l_PAAM,ang,ang_r_PAAM],wfe,aim,link,t,m='angx_func_rec',mode='r') +angx_r*margin
             side ='r'
         elif tilt_right<=-lim*0.99:
-            f_solve = lambda ang: get_FOV([ang_l_in,ang],wfe,aim,link,t,m='angx_func_rec',mode='r') -lim*margin
+            f_solve = lambda ang: get_FOV([ang_l_tele,ang_l_PAAM,ang,ang_r_PAAM],wfe,aim,link,t,m='angx_func_rec',mode='r') +angx_r*margin
             side='r'
         elif tilt_left>=lim*0.99:
-            f_solve = lambda ang: get_FOV([ang,ang_r_in],wfe,aim,link,t,m='angx_func_rec',mode='l') +lim*margin
+            f_solve = lambda ang: get_FOV([ang,ang_l_PAAM,ang_r_tele,ang_r_PAAM],wfe,aim,link,t,m='angx_func_rec',mode='l') +angx_l*margin
             side='l'
         elif tilt_left<=-lim*0.99:
-            f_solve = lambda ang: get_FOV([ang,ang_r_in],wfe,aim,link,t,m='angx_func_rec',mode='l') -lim*margin
+            f_solve = lambda ang: get_FOV([ang,ang_l_PAAM,ang_r_tele,ang_r_PAAM],wfe,aim,link,t,m='angx_func_rec',mode='l') +angx_l*margin
             side='l'
         
         step=0.1
         if side=='r':
-            ang_new = scipy.optimize.brentq(f_solve,ang_r_in-step,ang_r_in+step,xtol=1e-7)
-            angles = [ang_l_in,ang_new]
+            ang_new = scipy.optimize.brentq(f_solve,ang_r_tele-step,ang_r_tele+step,xtol=1e-7)
+            #print(f_solve(ang_new))
+            angles = [ang_l_tele,False,ang_new,False]
         elif side=='l':
-            ang_new = scipy.optimize.brentq(f_solve,ang_l_in-step,ang_l_in+step,xtol=1e-7)
-            angles = [ang_new,ang_r_in]
+            ang_new = scipy.optimize.brentq(f_solve,ang_l_tele-step,ang_l_tele+step,xtol=1e-7)
+            #print(f_solve(ang_new))
+            angles = [ang_new,False,ang_r_tele,False]
+    
     return angles
 
-def get_SS(wfe,aim,link,ret={},t_all={},tele_ang={},m='tilt'):
+def get_SS(wfe,aim,link,ret={},t_all={},ang_output={},m='tilt',component='tele'):
     #if FOV_lim==False:
     #    FOV_lim=wfe.FOV
     
     FOV_lim = wfe.SS[m]
     print('SS limit = '+str(FOV_lim))
-    if ret=={}:
+    if component not in ret.keys():
+        ret[component]={}
         for SC in range(1,4):
-            ret[str(SC)]={}
+            ret[component][str(SC)]={}
+
     if t_all=={}:
         for SC in range(1,4):
             t_all[str(SC)]={}
-            tele_ang[str(SC)]={}
+            ang_output[str(SC)]={}
     
     t0 = wfe.t_all[3]
     t_end = wfe.t_all[-3]
@@ -780,13 +869,15 @@ def get_SS(wfe,aim,link,ret={},t_all={},tele_ang={},m='tilt'):
     t_adjust=[t0]
     t_solve=t_adjust[0]
     angles_all=[]
-    angles_all.append(get_new_angles(aim,link,t0))
+
+    angles_all.append(get_new_angles(aim,link,t0,component=component))
 
     while t_solve<t_end:
         FOV_func = lambda t: get_FOV(angles_all[-1],wfe,aim,link,t,m=m,mode='normal') - FOV_lim
         check=True
         try:
             t_solve = scipy.optimize.brentq(FOV_func,t_adjust[-1],t_end,xtol=1)
+            print(t_solve/(3600*24.0))
             t_adjust.append(t_solve)
         except ValueError,e:
             print e
@@ -796,42 +887,57 @@ def get_SS(wfe,aim,link,ret={},t_all={},tele_ang={},m='tilt'):
                 break
         if check==True:
             angles_new = get_new_angles(aim,link,t_solve,ang_old = angles_all[-1],lim=FOV_lim,wfe=wfe)
-            #angles_new = get_new_angles(aim,link,t_solve,ang_old = False,lim=FOV_lim)
+            #angles_new = get_new_angles(aim,link,t_solve,ang_old = False,lim=FOV_lim,wfe=wfe)
             angles_all.append(angles_new)
     angles_all = np.matrix(angles_all)
     i = (link-2)%3
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(i)
 
-    ang_l_tele_list=[angles_all[0,0]]
-    ang_r_tele_list=[angles_all[0,1]]
+    
+    if component=='tele':
+        ang_l_list=[angles_all[0,0]]
+        ang_r_list=[angles_all[0,2]]
+        loc=[0,2]
+    elif component=='PAAM':
+        ang_l_list=[angles_all[0,1]]
+        ang_r_list=[angles_all[0,3]]
+        loc=[1,3]
+
     t_adjust_l=[t_adjust[0]]
     t_adjust_r=[t_adjust[0]]
     for j in range(1,len(angles_all)):
-        if angles_all[j,0]!=ang_l_tele_list[-1]:
-            ang_l_tele_list.append(angles_all[j,0])
+        if angles_all[j,loc[0]]!=ang_l_list[-1]:
+            ang_l_list.append(angles_all[j,loc[0]])
+            #ang_l_PAAM_list.append(angles_all[j,1])
             t_adjust_l.append(t_adjust[j])
-        if angles_all[j,1]!=ang_r_tele_list[-1]:
-            ang_r_tele_list.append(angles_all[j,1])
+        if angles_all[j,loc[1]]!=ang_r_list[-1]:
+            ang_r_list.append(angles_all[j,loc[1]])
+            #ang_r_PAAM_list.append(angles_all[j,3])
             t_adjust_r.append(t_adjust[j])
     
-    ang_l_tele_list = np.array(ang_l_tele_list)
-    ang_r_tele_list = np.array(ang_r_tele_list)
+    ang_l_list = np.array(ang_l_list)
+    ang_r_list = np.array(ang_r_list)
+    #ang_l_PAAM_list = np.array(ang_l_PAAM_list)
+    #ang_r_PAAM_list = np.array(ang_r_PAAM_list)
 
-    ang_l_tele = lambda t: get_SS_func(t_adjust_l,ang_l_tele_list,t)
-    ang_r_tele = lambda t: get_SS_func(t_adjust_r,ang_r_tele_list,t)
+    ang_l = lambda t: get_SS_func(t_adjust_l,ang_l_list,t)
+    #ang_l_PAAM = lambda t: get_SS_func(t_adjust_l,ang_l_PAAM_list,t)
+    ang_r = lambda t: get_SS_func(t_adjust_r,ang_r_list,t)
+    #ang_r_PAAM = lambda t: get_SS_func(t_adjust_r,ang_r_PAAM_list,t)
 
-    ret[str(i_left)]['l'] = ang_l_tele
-    ret[str(i_right)]['r'] = ang_r_tele
+    
+    ret[component][str(i_left)]['l'] = ang_l
+    ret[component][str(i_right)]['r'] = ang_r
+    #ret['PAAM'][str(i_left)]['l'] = ang_l_PAAM
+    #ret['PAAM'][str(i_right)]['r'] = ang_r_PAAM
     t_all[str(i_left)]['l'] = np.array(t_adjust_l)
     t_all[str(i_right)]['r'] = np.array(t_adjust_r)
-    tele_ang[str(i_left)]['l'] = ang_l_tele_list
-    tele_ang[str(i_right)]['r'] = ang_r_tele_list
+    ang_output[str(i_left)]['l'] = ang_l_list
+    ang_output[str(i_right)]['r'] = ang_r_list
+    #PAAM_ang[str(i_left)]['l'] = ang_l_PAAM_list
+    #PAAM_ang[str(i_right)]['r'] = ang_r_PAAM_list
 
-    print('')
-    print(ang_l_tele_list)
-    print('')
-
-    return ret,t_all,tele_ang
+    return ret,t_all,ang_output
 
 def get_SS_func(x,y,x_check):
     A = [t for t in x if t<x_check]

@@ -90,30 +90,11 @@ class WFE():
         self.data = data
         self.status_init_pointing=False
 
-    def init_pointing(self):
-        try:
-            del self.aim
-        except AttributeError:
-            pass
-        try:
-            del self.aim0
-        except AttributeError:
-            pass
-        try:
-            del self.aim_old
-        except AttributeError:
-            pass
 
-        self.get_pointing(PAAM_method='no_control',tele_method='no_control',iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=True)
-        self.status_init_pointing=True
-
-        return 0
-
-
-    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=False,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0): #...add more variables
         
-        if tele_ang_extra==True:
-            tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
+        #if tele_ang_extra==True:
+        #    tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
         if PAAM_ang_extra==True:
             PAAM_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'PAAM')
 
@@ -129,8 +110,32 @@ class WFE():
         else:
             self.PAAM_control_method = PAAM_method
 
-        aim = AIM(self,init=init,sampled=sampled,aim_old=aim_old,aim0=aim0,count=count)
-        aim.tele_aim(method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
+        if aim_old==False:
+            tele_l_ang=False
+            tele_r_ang=False
+            PAAM_l_ang=False
+            PAAM_r_ang=False
+        else:
+            tele_l_ang=aim_old.tele_l_ang
+            tele_r_ang=aim_old.tele_r_ang
+            PAAM_l_ang=aim_old.beam_l_ang
+            PAAM_r_ang=aim_old.beam_r_ang
+        angles_old = [tele_l_ang,PAAM_l_ang,tele_r_ang,PAAM_r_ang]
+
+        if aim0==False:
+            tele_l_ang0=False
+            tele_r_ang0=False
+            PAAM_l_ang0=False
+            PAAM_r_ang0=False
+        else:
+            tele_l_ang0=aim0.tele_l_ang
+            tele_r_ang0=aim0.tele_r_ang
+            PAAM_l_ang0=aim0.beam_l_ang
+            PAAM_r_ang0=aim0.beam_r_ang
+        angles0 = [tele_l_ang0,PAAM_l_ang0,tele_r_ang0,PAAM_r_ang0]
+
+        aim = AIM(self,init=init,sampled=sampled,angles0=angles0,angles_old=angles_old,count=count)
+        aim.tele_aim(self,method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
         out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra,option=option_PAAM)
         try:
             aim.tele_option
@@ -408,7 +413,7 @@ class WFE():
         return ps
 
 #Obtining TTL by pointing
-    def mean_angin(self,i,side,dt=False): #Used
+    def mean_angin(self,i,side,dt=False,speed=False): #Used
         t_vec = self.data.t_all
 
         if dt==False:
@@ -416,22 +421,32 @@ class WFE():
         t_vec = np.linspace(t_vec[0],t_vec[-1],int(((t_vec[-1]-t_vec[0])/dt)+1))
         #print(t_vec)
         ang=[]
+
+        try:
+            if speed==True:
+                raise AttributeError
+            aim_l = self.aim.tele_l_ang
+            aim_r = self.aim.tele_r_ang
+        except AttributeError:
+            aim_l = self.data.ang_in_l
+            aim_r = self.data.ang_in_r
+
         for t in t_vec:
             if side=='l':
-                ang.append(self.aim.tele_l_ang(i,t)-np.radians(-30))
+                ang.append(-abs(aim_l(i,t))-np.radians(-30))
             elif side=='r':
-                ang.append(self.aim.tele_r_ang(i,t)-np.radians(30))
+                ang.append(abs(aim_r(i,t))-np.radians(30))
         ang = np.array(ang)
 
         return np.nanmean(ang)
 
-    def do_mean_angin(self,dt=False): #Used
+    def do_mean_angin(self,dt=False,speed=False): #Used
         self.mean_angin_l={}
         self.mean_angin_r={}
 
         for i in range(1,4):
-            self.mean_angin_l[str(i)] = self.mean_angin(i,'l',dt=dt)
-            self.mean_angin_r[str(i)] = self.mean_angin(i,'r',dt=dt)
+            self.mean_angin_l[str(i)] = self.mean_angin(i,'l',dt=dt,speed=speed)
+            self.mean_angin_r[str(i)] = self.mean_angin(i,'r',dt=dt,speed=speed)
 
         return 0
 

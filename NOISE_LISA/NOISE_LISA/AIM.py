@@ -10,160 +10,56 @@ class AIM():
     LA = PAA_LISA.la()
 
     def __init__(self,wfe,**kwargs):
-        print('Start calculating telescope and PAAM aim')
-        
-        self.PAAM_method = wfe.PAAM_control_method
-        if self.PAAM_method =='SS_lim':
-            self.FOV_control = kwargs.pop('FOV_control',1e-6)
-        self.tele_method = wfe.tele_control
-        self.compensation_tele = kwargs.pop('compensation_tele',True)
-        self.sampled_on = kwargs.pop('sampled',False)
-
-        global LA
-        LA = PAA_LISA.la()
-        import imports
-        
-        self.wfe = wfe
-        self.init_set = kwargs.pop('init',False)
-        if self.init_set==True:
-            self.get_t_sampled()
-        else:
-            self.aim0 = kwargs.pop('aim0',False)
-            self.aim_old = kwargs.pop('aim_old',False)
-            if self.aim_old==False:
-                if 'SS' in self.tele_method:
-                    self.aim_old=True
-                    self.aim0=True
-                else:
-                    print('Please select init or previous aim iteration')
-                    raise ValueError
-
-        self.count=kwargs.pop('count',0)
-        print('')
-        print('Iteration count: '+str(self.count))
-        print('')
-        self.noise = pack.Noise(wfe=wfe)
-        self.PAAM_method = wfe.PAAM_control_method
-        self.tele_method = wfe.tele_control
-        self.sampled_val = False
-
-
-    def get_t_sampled(self):
-        t_sample0 = self.wfe.t_all
-
-        t_sample_all_l = []
-        t_sample_all_r = []
-
-        for i_self in range(1,4):
-            t_add_l = self.wfe.data.L_rl_func_tot
-            t_add_r = self.wfe.data.L_rr_func_tot
-
-            t_sample_l=[]
-            t_sample_r=[]
-            for t in t_sample0:
-                t_sample_l.append(t - t_add_l(i_self,t))
-                t_sample_r.append(t - t_add_r(i_self,t))
-                t_sample_l.append(t)
-                t_sample_r.append(t)
-            t_sample_all_l.append(t_sample_l)
-            t_sample_all_r.append(t_sample_r)
-        
-        self.t_sample_l = t_sample_all_l
-        self.t_sample_r = t_sample_all_r
-
-        return 0                  
-    
-    def get_funcions_from_sampling(self,samples):
-        [[y_l_tele,y_r_tele],[y_l_beam,y_r_beam]] = samples
-        
-        f_l_tele=[]
-        f_r_tele=[]
-        f_l_beam=[]
-        f_r_beam=[]
-        for i in range(0,len(y_l_tele)):
-            [xlt,ylt] = y_l_tele[i]
-            [xrt,yrt] = y_r_tele[i]
-            [xlb,ylb] = y_l_beam[i]
-            [xrb,yrb] = y_r_beam[i]
-            f_l_tele.append(pack.functions.interpolate(xlt,ylt))
-            f_r_tele.append(pack.functions.interpolate(xrt,yrt))
-            f_l_beam.append(pack.functions.interpolate(xlb,ylb))
-            f_r_beam.append(pack.functions.interpolate(xrb,yrb))
-
-        f_l_tele_ret = PAA_LISA.utils.func_over_sc(f_l_tele)
-        f_r_tele_ret = PAA_LISA.utils.func_over_sc(f_r_tele)
-        f_l_beam_ret = PAA_LISA.utils.func_over_sc(f_l_beam)
-        f_r_beam_ret = PAA_LISA.utils.func_over_sc(f_r_beam)
-
-        return [[f_l_tele_ret,f_r_tele_ret],[f_l_beam_ret,f_r_beam_ret]]
-
-
-    def get_sampled_pointing(self,option='start',ret='val'):
-        [f_l_tele,f_r_tele] = self.sampled_pointing('tele',option=option,ret=ret)
-        [f_l_beam,f_r_beam] = self.sampled_pointing('PAAM',option=option,ret=ret)
-        
-        self.sampled_val =  [[f_l_tele,f_r_tele],[f_l_beam,f_r_beam]]
-        self.sampled_val_type = ret
-
-        return self.sampled_val
-
-    def sampled_pointing(self,mode,option='start',ret='val'):
-        if option=='start':
-            aim_use = self.aim0
-        elif option=='previous':
-            aim_use = self.aim_old
-        elif option=='self':
-            aim_use = self
-        # Sample pointing
-
-        f_l_ang=[]
-        f_l_coor=[]
-        f_l_vec=[]
-        f_l_start=[]
-        f_l_direction=[]
-        f_r_ang=[]
-        f_r_coor=[]
-        f_r_vec=[]
-        f_r_start=[]
-        f_r_direction=[]
-
-        t_sample_l = self.aim0.t_sample_l
-        t_sample_r = self.aim0.t_sample_r
-        
-        y_l_ang_all=[]
-        y_r_ang_all=[]
-        for i_self in range(1,4):
-            x_l = t_sample_l[i_self-1]
-            x_r = t_sample_r[i_self-1]
-            if mode=='tele':
-                y_l_ang = np.array([aim_use.tele_l_ang(i_self,t) for t in x_l])
-                y_r_ang = np.array([aim_use.tele_r_ang(i_self,t) for t in x_r])
-                f_l_ang.append(pack.functions.interpolate(x_l,y_l_ang))
-                f_r_ang.append(pack.functions.interpolate(x_r,y_r_ang))
- 
-            elif mode=='PAAM':
-                y_l_ang = np.array([aim_use.beam_l_ang(i_self,t) for t in x_l])
-                y_r_ang = np.array([aim_use.beam_r_ang(i_self,t) for t in x_r])
-                f_l_ang.append(pack.functions.interpolate(x_l,y_l_ang))
-                f_r_ang.append(pack.functions.interpolate(x_r,y_r_ang))
-
-            y_l_ang_all.append([x_l,y_l_ang])
-            y_r_ang_all.append([x_r,y_r_ang])
-
-        if ret=='function':
-            if mode=='tele':
-                f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
-                f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
-            elif mode=='PAAM':
-                f_l = PAA_LISA.utils.func_over_sc(f_l_ang)
-                f_r = PAA_LISA.utils.func_over_sc(f_r_ang)
+        if wfe!=False:
+            print('Start calculating telescope and PAAM aim')
             
-            return [f_l,f_r]
-        elif ret=='val':
-            return [y_l_ang_all,y_r_ang_all]
-    
-    def get_wavefront_parallel(self,i,t,side):
-        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
+            self.PAAM_method = wfe.PAAM_control_method
+            if self.PAAM_method =='SS_lim':
+                self.FOV_control = kwargs.pop('FOV_control',1e-6)
+            self.tele_method = wfe.tele_control
+            self.compensation_tele = kwargs.pop('compensation_tele',True)
+            self.sampled_on = kwargs.pop('sampled',False)
+
+            global LA
+            LA = PAA_LISA.la()
+            import imports
+            
+            self.wfe = wfe
+            self.init_set = kwargs.pop('init',False)
+            if self.init_set!=True:
+                self.angles0=kwargs.pop('angles0',False)
+                self.aim0=AIM(False)
+                self.aim0.tele_l_ang = self.angles0[0]
+                self.aim0.tele_r_ang = self.angles0[2]
+                self.aim0.beam_l_ang = self.angles0[1]
+                self.aim0.beam_r_ang = self.angles0[3]
+                self.aim0.wfe=wfe
+                self.aim0.get_coordinate_systems(option='self')
+
+                self.angles_old=kwargs.pop('angles_old',False)
+                self.aim_old=AIM(False)
+                self.aim_old.tele_l_ang = self.angles_old[0]
+                self.aim_old.tele_r_ang = self.angles_old[2]
+                self.aim_old.beam_l_ang = self.angles_old[1]
+                self.aim_old.beam_r_ang = self.angles_old[3]
+                self.aim_old.wfe=wfe
+                self.aim_old.get_coordinate_systems(option='self')
+                #if self.aim_old==False:
+                #    if 'SS' in self.tele_method:
+                #        self.aim_old=True
+                #        self.aim0=True
+                #    else:
+                #        print('Please select init or previous aim iteration')
+                #        raise ValueError
+
+            self.count=kwargs.pop('count',0)
+            print('')
+            print('Iteration count: '+str(self.count))
+            print('')
+            self.noise = pack.Noise(wfe=wfe)
+            self.PAAM_method = wfe.PAAM_control_method
+            self.tele_method = wfe.tele_control
+            self.iteration=0
 
 
     def get_aim_accuracy(self,i,t,side,component=False,option='wavefront'):
@@ -272,57 +168,119 @@ class AIM():
     def tele_control_ang_fc(self,option='wavefront'):
         # Option 'wavefront' means poiting with the purpose of getting a small tilt of the receiving wavefront
         # 'center' means pointing it to te center of the receiving telescope
-        i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
-        i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
-
-        print('Telescope pointing strategy: '+option)
-        # Obtaines functions for optimal telescope pointing vector
         if option=='center':
-            scale=1
-        elif option=='wavefront':
+            i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
+            i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
+
+            print('Telescope pointing strategy: '+option)
             scale=1
 
-        delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[2]
-        delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[2]
-        if option=='wavefront':
-            ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[0]*scale #...
-            ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[0]*scale
-
-        
-        elif option=='center':
+            delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='tele',option=option)[2]
+            delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='tele',option=option)[2] 
             ang_tele_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='tele',option=option)[0]*scale
             ang_tele_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='tele',option=option)[0]*scale
 
-        if self.sampled_on==True:
-            if type(self.sampled_val)==bool:
-                self.get_sampled_pointing(option='previous')
-            [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
-        else:
             tele_l = self.aim_old.tele_l_ang
-            tele_r = self.aim_old.tele_r_ang
-            beam_l = self.aim_old.beam_l_ang
-            beam_r = self.aim_old.beam_r_ang
-        
-        if option=='wavefront':
-            self.tele_ang_l_fc = lambda i,t: tele_l(i,t)+ang_tele_extra_l(i,t)
-            self.tele_ang_r_fc = lambda i,t: tele_r(i,t)+ang_tele_extra_r(i,t)
-        elif option=='center':
-            self.tele_ang_l_fc = lambda i,t: tele_l(i,t)+ang_tele_extra_l(i,t)
-            self.tele_ang_r_fc = lambda i,t: tele_r(i,t)+ang_tele_extra_r(i,t)
+            tele_r = self.aim_old.tele_r_ang 
+            ang_l = lambda i,t: tele_l(i,t)+ang_tele_extra_l(i,t)
+            ang_r = lambda i,t: tele_r(i,t)+ang_tele_extra_r(i,t)
 
 
-        
+        elif option=='wavefront':
+            lim=1e-10
+            i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
+
+            ang_l = lambda i,t: pack.functions.rotate_tele_wavefront(self.wfe,self.aim0,PAA_LISA.utils.get_link(i,'l'),t,count_max=np.inf,lim=lim,scale=1)[0]
+            ang_r = lambda i,t: pack.functions.rotate_tele_wavefront(self.wfe,self.aim0,PAA_LISA.utils.get_link(i,'r'),t+self.wfe.data.L_rl_func_tot(i_right(i),t),count_max=np.inf,lim=lim,scale=1)[2]
+
         self.tele_option = option
+        return [ang_l,ang_r]
+
+
+    def tele_aim(self,wfe,method=False,lim=1e-10,tele_ang_extra=True,option='wavefront',iteration=0):
+        if method==False:
+            method=self.tele_method
+        else:
+            self.tele_method=method
+        
+        try:
+            print('The telescope control method is: '+method)
+        except:
+            print('The telescope control method is: user defined')
+
+        print(' ')
+
+        if method=='no_control':
+            if tele_ang_extra==False:
+                offset_l = {'1':0,'2':0,'3':0}
+                offset_r = {'1':0,'2':0,'3':0}
+            elif tele_ang_extra==True:
+                try:
+                    offset_l = self.wfe.mean_angin_l
+                    offset_r = self.wfe.mean_angin_r
+                except:
+                    self.wfe.do_mean_angin(speed=True) #...adjust for speed=False option
+                    offset_l = self.wfe.mean_angin_l
+                    offset_r = self.wfe.mean_angin_r
+            else:
+                [offset_l,offset_r] = tele_ang_extra
+
+            self.offset =[offset_l,offset_r]
+            self.tele_l_ang = lambda i,t: np.radians(-30)+offset_l[str(i)]*0.5
+            self.tele_r_ang = lambda i,t: np.radians(30)+offset_r[str(i)]*0.5
+        
+        elif method=='full_control':
+            [self.tele_ang_l_fc,self.tele_ang_r_fc] = self.tele_control_ang_fc(option=option)
+            self.tele_l_ang = self.tele_ang_l_fc
+            self.tele_r_ang = self.tele_ang_r_fc
+
+        
+        elif 'SS' in method:
+            ### Obtai full control
+            [self.tele_ang_l_fc,self.tele_ang_r_fc] = self.tele_control_ang_fc(option=option)
+            if option=='center':
+                print('Still have to implement') #...adjust
+
+            m = method.split('SS_')[-1]
+            print('SS by '+m)
+            print('')
+            ret={}
+            t_all={}
+            ang_adjust={}
+            for link in range(1,4):
+                #if self.count==0:
+                try:
+                    self.beam_r_ang
+                except AttributeError:
+                    self.beam_l_ang = self.wfe.data.ang_out_l
+                    self.beam_r_ang = self.wfe.data.ang_out_r
+                ret,t_all,ang_adjust = pack.functions.get_SS(self.wfe,self,link,ret=ret,m=m,t_all=t_all,ang_output=ang_adjust)
+                #else:
+                #    ret,t_all,tele_ang_adjust,PAAM_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust,PAAM_ang=PAAM_ang_adjust)
+
+            self.t_adjust = t_all
+            self.tele_ang_adjust = ang_adjust
+
+            self.tele_l_ang_SS = lambda i,t: ret['tele'][str(i)]['l'](t)
+            self.tele_r_ang_SS = lambda i,t: ret['tele'][str(i)]['r'](t)
+            #self.PAAM_l_ang_SS = lambda i,t: ret['PAAM'][str(i)]['l'](t)
+            #self.PAAM_r_ang_SS = lambda i,t: ret['PAAM'][str(i)]['r'](t)
+
+
+            self.tele_l_ang = self.tele_l_ang_SS
+            self.tele_r_ang = self.tele_r_ang_SS
+        else:
+            raise ValueError('Please select valid telescope pointing method')
+
+
         return 0
 
 
-    def tele_aim(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=False,option='wavefront'):
+
+        
+
+    def tele_aim_old(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=True,option='wavefront'):
         self.option_tele=option
-        if self.init_set==False and 'SS' not in method:
-            self.get_sampled_pointing(option='previous')
-            self.tele_control_ang_fc(option=option)
-            tele_l = self.tele_ang_l_fc
-            tele_r = self.tele_ang_r_fc
 
         if method == False:
             method = self.tele_method
@@ -338,19 +296,31 @@ class AIM():
         
         # Calculating telescope angle for 'full_control', 'no_control' and 'SS' (step and stair)
         if method=='full_control':
-            tele_l = tele_l
-            tele_r = tele_r
+            self.tele_control_ang_fc(option=option)
+            tele_l = self.tele_ang_l_fc
+            tele_r = self.tele_ang_r_fc
+            self.tele_l_ang_g = lambda i,t: pack.functions.get_tele_fc(self.wfe,self.aim0,i,t,'l',lim=1e-10)
+            self.tele_r_ang_g = lambda i,t: pack.functions.get_tele_fc(self.wfe,self.aim0,i,t,'r',lim=1e-10)
        
         elif method=='no_control':
             #self.do_static_tele_angle('tele')
             if tele_ang_extra==False:
-                offset_l = [0,0,0]
-                offset_r = [0,0,0]
+                offset_l = {'1':0,'2':0,'3':0}
+                offset_r = {'1':0,'2':0,'3':0}
+            elif tele_ang_extra==True:
+                try:
+                    offset_l = self.wfe.mean_angin_l
+                    offset_r = self.wfe.mean_angin_r
+                except:
+                    self.wfe.do_mean_angin(speed=True) #...adjust for speed=False option
+                    offset_l = self.wfe.mean_angin_l
+                    offset_r = self.wfe.mean_angin_r
             else:
                 [offset_l,offset_r] = tele_ang_extra
-
-            tele_l = lambda i,t: np.radians(-30)+offset_l[i-1]*0.5
-            tele_r = lambda i,t: np.radians(30)+offset_r[i-1]*0.5
+            
+            self.offset =[offset_l,offset_r]
+            tele_l = lambda i,t: np.radians(-30)+offset_l[str(i)]*0.5
+            tele_r = lambda i,t: np.radians(30)+offset_r[str(i)]*0.5
 
 
         elif method=='SS': #After dt, the telescope is pointed again
@@ -367,6 +337,7 @@ class AIM():
             ret={}
             t_all={}
             tele_ang_adjust={}
+            PAAM_ang_adjust={}
             for link in range(1,4):
                 if self.count==0:
                     try:
@@ -374,15 +345,20 @@ class AIM():
                     except AttributeError:
                         self.beam_l_ang = self.wfe.data.PAA_func['l_out']
                         self.beam_r_ang = self.wfe.data.PAA_func['r_out']
-                    ret,t_all,tele_ang_adjust = pack.functions.get_SS(self.wfe,self,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust)
+                    ret,t_all,tele_ang_adjust,PAAM_ang_adjust = pack.functions.get_SS(self.wfe,self,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust,PAAM_ang=PAAM_ang_adjust)
                 else:
-                    ret,t_all,tele_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust)
+                    ret,t_all,tele_ang_adjust,PAAM_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust,PAAM_ang=PAAM_ang_adjust)
 
             self.t_adjust = t_all
             self.tele_ang_adjust = tele_ang_adjust
+            self.PAAM_ang_adjust = PAAM_ang_adjust
 
-            self.tele_l_ang_SS = lambda i,t: ret[str(i)]['l'](t)
-            self.tele_r_ang_SS = lambda i,t: ret[str(i)]['r'](t)
+            self.tele_l_ang_SS = lambda i,t: ret['tele'][str(i)]['l'](t)
+            self.tele_r_ang_SS = lambda i,t: ret['tele'][str(i)]['r'](t)
+            self.PAAM_l_ang_SS = lambda i,t: ret['PAAM'][str(i)]['l'](t)
+            self.PAAM_r_ang_SS = lambda i,t: ret['PAAM'][str(i)]['r'](t)
+
+
             tele_l = self.tele_l_ang_SS
             tele_r = self.tele_r_ang_SS
         
@@ -487,50 +463,62 @@ class AIM():
     
     def PAAM_control_ang_fc(self,option='center'):
         self.option_PAAM=option
-        i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
-        i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
-
-        print('PAAM pointing strategy: '+option)
-        # Obtains functions for optimal telescope pointing vector
-        #if option!='wavefront':
-        #    delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
-        #    delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
-
         
-        if option=='wavefront':
-            #ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='PAAM',option=option)[1]
-            #ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='PAAM',option=option)[1]
-            if self.count>0:
-                ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
-                ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
-
-        elif option=='center':
-            ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t,'r',component='PAAM',option=option)[1]
-            ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t,'l',component='PAAM',option=option)[1]
-
-        if self.sampled_on==True:
-            [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
-        else:
-            tele_l = self.aim_old.tele_l_ang
-            tele_r = self.aim_old.tele_r_ang
-            beam_l = self.aim_old.beam_l_ang
-            beam_r = self.aim_old.beam_r_ang
-
+        if option=='center':
+            ang_l = lambda i,t: pack.functions.rotate_PAA_wavefront(self.wfe,self.aim_old,i,t,'l','yoff')
+            ang_r = lambda i,t: pack.functions.rotate_PAA_wavefront(self.wfe,self.aim_old,i,t,'r','yoff')
         
-        if option=='wavefront':
-            if self.count>0:
-                self.PAAM_ang_l_fc = lambda i,t: ang_PAAM_extra_l(i,t)
-                self.PAAM_ang_r_fc = lambda i,t: ang_PAAM_extra_r(i,t)
-            else:
-                self.PAAM_ang_l_fc = self.aim_old.beam_l_ang
-                self.PAAM_ang_r_fc = self.aim_old.beam_r_ang
-
-        elif option=='center':
-            self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t)
-            self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)+ang_PAAM_extra_r(i,t)
-
+        elif option=='wavefront':
+            ang_l = lambda i,t: pack.functions.rotate_PAA_wavefront(self.wfe,self.aim_old,i,t,'l','angy')
+            ang_r = lambda i,t: pack.functions.rotate_PAA_wavefront(self.wfe,self.aim_old,i,t,'r','angy')
 
         self.PAAM_option = option
+        return [ang_l,ang_r]
+
+        
+        #i_left = lambda i: PAA_LISA.utils.i_slr(i)[1]
+        #i_right = lambda i: PAA_LISA.utils.i_slr(i)[2]
+
+        #print('PAAM pointing strategy: '+option)
+        ## Obtains functions for optimal telescope pointing vector
+        ##if option!='wavefront':
+        ##    delay_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[2]
+        ##    delay_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[2]
+
+        #
+        #if option=='wavefront':
+        #    #ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t+delay_l(i,t),'r',component='PAAM',option=option)[1]
+        #    #ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t+delay_r(i,t),'l',component='PAAM',option=option)[1]
+        #    if self.count>0:
+        #        ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i,t,'l',component='PAAM',option=option)[1]
+        #        ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i,t,'r',component='PAAM',option=option)[1]
+
+        #elif option=='center':
+        #    ang_PAAM_extra_l = lambda i,t: self.get_aim_accuracy(i_left(i),t,'r',component='PAAM',option=option)[1]
+        #    ang_PAAM_extra_r = lambda i,t: self.get_aim_accuracy(i_right(i),t,'l',component='PAAM',option=option)[1]
+
+        #if self.sampled_on==True:
+        #    [[tele_l,tele_r],[beam_l,beam_r]] = self.get_funcions_from_sampling(self.sampled_val)
+        #else:
+        #    tele_l = self.aim_old.tele_l_ang
+        #    tele_r = self.aim_old.tele_r_ang
+        #    beam_l = self.aim_old.beam_l_ang
+        #    beam_r = self.aim_old.beam_r_ang
+
+        #
+        #if option=='wavefront':
+        #    if self.count>0:
+        #        self.PAAM_ang_l_fc = lambda i,t: ang_PAAM_extra_l(i,t)
+        #        self.PAAM_ang_r_fc = lambda i,t: ang_PAAM_extra_r(i,t)
+        #    else:
+        #        self.PAAM_ang_l_fc = self.aim_old.beam_l_ang
+        #        self.PAAM_ang_r_fc = self.aim_old.beam_r_ang
+
+        #elif option=='center':
+        #    self.PAAM_ang_l_fc = lambda i,t: beam_l(i,t)+ang_PAAM_extra_l(i,t)
+        #    self.PAAM_ang_r_fc = lambda i,t: beam_r(i,t)+ang_PAAM_extra_r(i,t)
+
+
 
 
     def PAAM_control(self,method=False,dt=3600*24,jitter=False,tau=1,mode='overdamped',PAAM_ang_extra=False,option='center'):
@@ -542,20 +530,20 @@ class AIM():
         print('The PAAM control method is: ' +method)
         print(' ')
 
-        if self.init_set==False:
-            try:
-                self.PAAM_control_ang_fc(option=option)
-                ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
-                ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
-            except AttributeError,e:
-                if option=='center':
-                    ang_fc_l = self.wfe.data.PAA_func['l_out']
-                    ang_fc_r = self.wfe.data.PAA_func['r_out']
-                    pass
-                else:
-                    raise AttributeError(str(e))
-            self.PAAM_fc_ang_l = ang_fc_l
-            self.PAAM_fc_ang_r = ang_fc_r
+        #if self.init_set==False:
+        #    try:
+        #        self.PAAM_control_ang_fc(option=option)
+        #        ang_fc_l = lambda i,t: self.PAAM_ang_l_fc(i,t)
+        #        ang_fc_r = lambda i,t: self.PAAM_ang_r_fc(i,t)
+        #    except AttributeError,e:
+        #        if option=='center':
+        #            ang_fc_l = self.wfe.data.PAA_func['l_out']
+        #            ang_fc_r = self.wfe.data.PAA_func['r_out']
+        #            pass
+        #        else:
+        #            raise AttributeError(str(e))
+        #    self.PAAM_fc_ang_l = ang_fc_l
+        #    self.PAAM_fc_ang_r = ang_fc_r
 
         #ang_fc_l = lambda i,t: self.wfe.data.PAA_func['l_out'](i,t)
         #ang_fc_r = lambda i,t: self.wfe.data.PAA_func['r_out'](i,t)
@@ -567,12 +555,10 @@ class AIM():
         # Obtaining PAAM angles for 'fc' (full_control), 'nc' (no_control) and 'SS' (step and stair)
         
         if method=='full_control':
-            try:
-                ang_l = ang_fc_l
-                ang_r = ang_fc_r
-            except UnboundLocalError:
-                ang_l=self.wfe.data.PAA_func['l_out']
-                ang_r=self.wfe.data.PAA_func['r_out']
+            [ang_l,ang_r] = self.PAAM_control_ang_fc(option=option)
+            #except UnboundLocalError:
+            #    ang_l=self.wfe.data.PAA_func['l_out']
+            #    ang_r=self.wfe.data.PAA_func['r_out']
 
         elif method=='no_control':
             #self.do_static_tele_angle('PAAM')

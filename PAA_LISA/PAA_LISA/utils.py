@@ -274,6 +274,16 @@ def i_slr(i,side='all'):
     elif side=='r':
         return [i_ret[0],i_ret[2]]
 
+def get_link(i,side):
+    if side=='l':
+        link=(i+2)%3
+    if side=='r':
+        link=(i+1)%3
+
+    if link==0:
+        link=3
+
+    return link
 
 def get_armvec_func(OBJ,i,side):
     [i_OBJ,i_next] = i_slr(i,side=side)
