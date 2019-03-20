@@ -61,6 +61,49 @@ class AIM():
             self.tele_method = wfe.tele_control
             self.iteration=0
 
+    def get_sampled(self,dt=False):
+        try:
+            del self.aim_sampled
+        except AttributeError:
+            pass
+        wfe = self.wfe
+
+        self.aim_sampled=AIM(False)
+        if dt==False:
+            dt = self.wfe.t_all[1]-self.wfe.t_all[0]
+        start = wfe.t_all[3]
+        end = wfe.t_all[-3]
+        t_sample = np.linspace(start,end,int((end-start)/dt)+1)
+
+        ang_l_tele_list=[]
+        ang_r_tele_list=[]
+        ang_l_PAAM_list=[]
+        ang_r_PAAM_list=[]
+
+        for SC in range(1,4):
+            ang_l_tele = [self.tele_l_ang(SC,t) for t in t_sample]
+            ang_r_tele = [self.tele_r_ang(SC,t) for t in t_sample]
+            ang_l_PAAM = [self.beam_l_ang(SC,t) for t in t_sample]
+            ang_r_PAAM = [self.beam_r_ang(SC,t) for t in t_sample]
+            
+            ang_l_tele_list.append(pack.functions.interpolate(t_sample,ang_l_tele))
+            ang_r_tele_list.append(pack.functions.interpolate(t_sample,ang_r_tele))
+            ang_l_PAAM_list.append(pack.functions.interpolate(t_sample,ang_l_PAAM))
+            ang_r_PAAM_list.append(pack.functions.interpolate(t_sample,ang_r_PAAM))
+        
+        self.aim_sampled.tele_l_ang = PAA_LISA.utils.func_over_sc(ang_l_tele_list)
+        self.aim_sampled.tele_r_ang = PAA_LISA.utils.func_over_sc(ang_r_tele_list)
+        self.aim_sampled.beam_l_ang = PAA_LISA.utils.func_over_sc(ang_l_PAAM_list)
+        self.aim_sampled.beam_r_ang = PAA_LISA.utils.func_over_sc(ang_r_PAAM_list)
+        
+        self.aim_sampled.wfe= wfe
+        self.aim_sampled.get_coordinate_systems(iteration_val=False,option='self')
+
+        self.aim_sampled.tele_option = self.tele_option
+        self.aim_sampled.PAAM_option = self.PAAM_option
+        self.aim_sampled.iteration = 0
+        
+        return 0 
 
     def get_aim_accuracy(self,i,t,side,component=False,option='wavefront'):
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
@@ -269,6 +312,12 @@ class AIM():
 
             self.tele_l_ang = self.tele_l_ang_SS
             self.tele_r_ang = self.tele_r_ang_SS
+        
+        elif type(method)==list and method[0]=='Imported pointing':
+            print(method[0])
+            self.tele_l_ang = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'l',x=method[1]['SC'+str(i)+', left']['x'],y=method[1]['SC'+str(i)+', left']['y'])
+            self.tele_r_ang = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'r',x=method[1]['SC'+str(i)+', right']['x'],y=method[1]['SC'+str(i)+', right']['y'])
+
         else:
             raise ValueError('Please select valid telescope pointing method')
 
@@ -624,7 +673,7 @@ class AIM():
         ##self.beam_r_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_r_func_tot(i,t))
         
  
-        self.get_coordinate_systems(iteration_val=self.sampled_on,option='self')
+        self.get_coordinate_systems(iteration_val=False,option='self')
         
         return self
     

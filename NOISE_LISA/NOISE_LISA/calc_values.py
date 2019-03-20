@@ -53,37 +53,65 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
     for i in SC:
         ret['mean'][str(i)]={}
         ret['var'][str(i)]={}
-        for s in side:
-            mean={}
-            var={}
-            #calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big',aim=aim)
+        if meas[0]!='all_val' and 't_adjust' not in meas and 'tele_ang_adjust' not in meas and 'adjust' not in meas:
+            for s in side:
+                mean={}
+                var={}
+                #calc_all = lambda t: wfe.calc_piston_val(i,t,s,ret=meas,size='big',aim=aim)
 
-            for t in t_vec[lim[0]:lim[-1]]:
-                #print(t)
-                #calc = calc_all(t)
-                calc = wfe.calc_piston_val(i,t,s,ret=meas,size=size,aim=aim)
-                for m in calc.keys():
-                #calc = wfe.calc_piston_val(i,t,s,ret=m)
-                    try:
-                        mean[m]
-                    except KeyError:
-                        mean[m] = []
-                        var[m] = []
-                        
-                    if calc[m][-1]=='vec':
-                        mean[m].append([t,calc[m][0]])
-                        var[m].append([t,np.nan])
-                    else:
-                        mean[m].append([t,calc[m][0]])
-                        var[m].append([t,calc[m][1]])
+                for t in t_vec[lim[0]:lim[-1]]:
+                    #print(t)
+                    #calc = calc_all(t)
+                    calc = wfe.calc_piston_val(i,t,s,ret=meas,size=size,aim=aim)
+                    for m in calc.keys():
+                    #calc = wfe.calc_piston_val(i,t,s,ret=m)
+                        try:
+                            mean[m]
+                        except KeyError:
+                            mean[m] = []
+                            var[m] = []
+                            
+                        if calc[m][-1]=='vec':
+                            mean[m].append([t,calc[m][0]])
+                            var[m].append([t,np.nan])
+                        else:
+                            mean[m].append([t,calc[m][0]])
+                            var[m].append([t,calc[m][1]])
 
-            ret['mean'][str(i)][s] = mean
-            ret['var'][str(i)][s] = var
+                ret['mean'][str(i)][s] = mean
+                ret['var'][str(i)][s] = var
+        else:
+            for s in side:
+                ret['mean'][str(i)][s] = {}
+                ret['var'][str(i)][s] = {}
 
+    # Add lists
+    lists=['t_adjust','tele_ang_adjust','adjust']
+    if meas[0]=='all_val' or meas[0] in lists:
+        for meanvar in ret.keys():
+            for i in SC:
+                for s in side:
+                    if meanvar=='mean':
+                        ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]
+                        ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]
+
+                    elif meanvar=='var':
+                        ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]*0
+                        ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]*0
+                    x = ret[meanvar][str(i)][s]['t_adjust']
+                    y = ret[meanvar][str(i)][s]['tele_ang_adjust']
+                    xy=[]
+                    for j in range(0,len(x)):
+                        xy.append([x[j],y[j]])
+                    ret[meanvar][str(i)][s]['adjust']=xy
+
+   
     ret_sort={}
     for meanvar in ret.keys():
         for i in SC:
             for s in side:
+                #print(meanvar,i,s)
+                #print(ret[meanvar][str(i)])
                 for m in ret[meanvar][str(i)][s].keys():
                     try:
                         ret_sort[m]
@@ -106,42 +134,7 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
 
             #ret['mean'][str(i)][s]=mean
             #ret['var'][str(i)][s]=var
-
-    # Add lists
-    lists=['t_adjust','tele_ang_adjust','adjust']
-    if meas[0]=='all_val' or meas[0] in lists:
-        try:
-            ret_sort['t_adjust']={}
-            ret_sort['t_adjust']['mean']=aim.t_adjust
-            ret_sort['tele_ang_adjust']={}
-            ret_sort['tele_ang_adjust']['mean']=aim.tele_ang_adjust 
-            ret_sort['t_adjust']['var']={}
-            ret_sort['tele_ang_adjust']['var']={}
             
-            for i in SC:
-                ret_sort['t_adjust']['var'][str(i)]={}
-                ret_sort['tele_ang_adjust']['var'][str(i)]={}
-                for s in side:
-                    ret_sort['t_adjust']['var'][str(i)][s]  = aim.t_adjust[str(i)][s]*0
-                    ret_sort['tele_ang_adjust']['var'][str(i)][s]  = aim.tele_ang_adjust[str(i)][s]*0
-
-        except AttributeError:
-            ret_sort['t_adjust']['mean'] = np.nan
-            ret_sort['t_adjust']['var'] = np.nan
-            ret_sort['tele_ang_adjust']['mean'] = np.nan
-            ret_sort['tele_ang_adjust']['var'] = np.nan
-            pass
-
-        ret_sort['adjust']={}
-        for k in ret_sort['t_adjust'].keys():
-            ret_sort['adjust'][k]={}
-            for SC in ret_sort['t_adjust'][k].keys():
-                ret_sort['adjust'][k][SC]={}
-                for s in ret_sort['t_adjust'][k][SC].keys():
-                    ret_sort['adjust'][k][SC][s]={}
-                    ret_sort['adjust'][k][SC][s]['x'] = ret_sort['t_adjust'][k][SC][s]
-                    ret_sort['adjust'][k][SC][s]['y'] = ret_sort['tele_ang_adjust'][k][SC][s]
-    
     ret_all={}
     if meas[0]=='all_val':
         meas = calc.keys()

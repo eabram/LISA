@@ -21,36 +21,28 @@ def get_nearest_smaller_value(lst,val):
 
 def get_tele_SS(aim,method,i,t,side,x=False,y=False):
     if method==False:
-        if side=='l':
-            key = 'SC'+str(i)+', left'
-        elif side=='r':
-            key = 'SC'+str(i)+', right'
-        t_adjust = x[key]['x']
-        ang = y[key]['x']
-        try:
-            if t>t_adjust[-1]:
-                return np.nan
-            else:
-                pos_t = get_nearest_smaller_value(t_adjust,t)
-                return ang[pos_t]
-        except:
-            return np.nan
-
-    else:
-        if side =='l':
-            key='SC'+str(i)+', left'
-            fc = aim.tele_ang_l_fc
-        elif side =='r':
-            key='SC'+str(i)+', right'
-            fc = aim.tele_ang_r_fc
-        t_adjust = method[key]['x']
+        if type(y)==bool:
+            if side=='l':
+                fc = aim.tele_ang_l_fc
+            elif side=='r':
+                fc = aim.tele_ang_r_fc
+        else:
+            fc=y
+        t_adjust = x
         pos_t = get_nearest_smaller_value(t_adjust,t)
-        
-        try:
-            return fc(i,t_adjust[pos_t])
-        except:
-            #print(pos_t)
-            return np.nan
+
+        if type(y)==bool:
+            try:
+                return fc(i,t_adjust[pos_t])
+            except:
+                #print(pos_t)
+                return np.nan
+        else:
+            try:
+                return fc[pos_t]
+            except IndexError:
+                print(pos_t)
+                return np.nan
 
 def make_nan(function,t,lim):
     [a,b]=lim
@@ -595,20 +587,20 @@ def rotate_tele_wavefront(wfe,aim,link,t,count_max=np.inf,lim=2e-16,scale=1):
     else:
         return angles
 
-def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret):
+def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret,output_full=False):
     [i_left,i_right,link] = PAA_LISA.utils.i_slr(SC)
 
     import scipy.optimize
     
-    f = lambda PAAM_ang: NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,SC,t,'l',PAAM_ang,ret,mode='opposite',precision=0,ksi=[0,0],angles=False)
-    try:
-        ang_solve = scipy.optimize.brentq(f,np.float64(-0.1),np.float64(0.1),rtol=1e-10)
-        if abs(f(ang_solve))>1e-10 and ret=='angy':
-            ang_solve=np.nan
-    except ValueError:
-        ang_solve=np.nan
-    
-    return ang_solve
+    f = lambda PAAM_ang,m: get_wavefront_parallel(wfe,aim,SC,t,side,PAAM_ang,m,mode='opposite',precision=0,ksi=[0,0],angles=False)
+    ang_solve = scipy.optimize.brentq(lambda PAAM_ang: f(PAAM_ang,ret),np.float64(-0.1),np.float64(0.1))
+
+
+    if output_full==True:
+        return ang_solve,f(ang_solve,'yoff'),f(ang_solve,'angy')
+    elif output_full==False:
+        return ang_solve
+
 
 
 
