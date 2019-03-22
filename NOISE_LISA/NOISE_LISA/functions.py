@@ -213,6 +213,7 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
                                 except IndexError:
                                     writefile.write(str(point)+'\n')
                             title=title+'_'+k
+                            print(k)
 
 
 
