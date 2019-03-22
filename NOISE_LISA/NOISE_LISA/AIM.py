@@ -56,10 +56,12 @@ class AIM():
             print('')
             print('Iteration count: '+str(self.count))
             print('')
-            self.noise = pack.Noise(wfe=wfe)
+            #self.noise = pack.Noise(wfe=wfe)
             self.PAAM_method = wfe.PAAM_control_method
             self.tele_method = wfe.tele_control
             self.iteration=0
+            offset_tele = kwargs.pop('offset_tele',True)
+            self.get_offset_inplane(offset_tele)
 
     def get_sampled(self,dt=False):
         try:
@@ -102,8 +104,28 @@ class AIM():
         self.aim_sampled.tele_option = self.tele_option
         self.aim_sampled.PAAM_option = self.PAAM_option
         self.aim_sampled.iteration = 0
+        self.aim_sampled.t_all = t_sample
         
+
         return 0 
+    
+    def get_offset_inplane(self,option):
+
+        if option==0:
+            offset = {'l': {1: 0.0, 2: 0.0, 3: 0.0},
+ 'r': {1: 0.0, 2: 0.0, 3: 0.0}}
+
+        elif option==True:
+            offset = {'l': {1: -0.00018360462896226676, 2: 0.0, 3: 0.0},
+ 'r': {1: 0.0, 2: 0.0, 3: 0.0}}
+
+        else:
+            raise ValueError("Please select offset tele values or method")
+
+        self.offset_tele = offset
+
+        return 0
+
 
     def get_aim_accuracy(self,i,t,side,component=False,option='wavefront'):
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
@@ -317,6 +339,20 @@ class AIM():
             print(method[0])
             self.tele_l_ang = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'l',x=method[1]['SC'+str(i)+', left']['x'],y=method[1]['SC'+str(i)+', left']['y'])
             self.tele_r_ang = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'r',x=method[1]['SC'+str(i)+', right']['x'],y=method[1]['SC'+str(i)+', right']['y'])
+            
+            t_adjust={}
+            tele_ang_adjust = {}
+            for i in range(1,4):
+                t_adjust[str(i)]={}
+                tele_ang_adjust[str(i)]={}
+                t_adjust[str(i)]['l']=method[1]['SC'+str(i)+', left']['x']
+                t_adjust[str(i)]['r']=method[1]['SC'+str(i)+', right']['x']
+                tele_ang_adjust[str(i)]['l']=method[1]['SC'+str(i)+', left']['y']
+                tele_ang_adjust[str(i)]['r']=method[1]['SC'+str(i)+', right']['y']
+
+            
+            self.t_adjust = t_adjust
+            self.tele_ang_adjust = tele_ang_adjust
 
         else:
             raise ValueError('Please select valid telescope pointing method')
@@ -680,8 +716,8 @@ class AIM():
     
     def get_beam_coor(self,i,t,tele_l_ang,tele_r_ang,beam_l_ang,beam_r_ang):
         # Calculating new pointing vectors and coordinate system
-        beam_l_coor = pack.functions.beam_coor_out(self.wfe,i,t,tele_l_ang(i,t),beam_l_ang(i,t))
-        beam_r_coor = pack.functions.beam_coor_out(self.wfe,i,t,tele_r_ang(i,t),beam_r_ang(i,t))
+        beam_l_coor = pack.functions.beam_coor_out(self.wfe,i,t,tele_l_ang(i,t),beam_l_ang(i,t),self.offset_tele['l'])
+        beam_r_coor = pack.functions.beam_coor_out(self.wfe,i,t,tele_r_ang(i,t),beam_r_ang(i,t),self.offset_tele['r'])
 
         # Calculating the Transmitted beam direction and position of the telescope aperture
         beam_l_direction = beam_l_coor[0]
@@ -721,99 +757,6 @@ class AIM():
         self.beam_r_ang_calc = beam_r_ang
         
         return 0 #[tele_l_ang,tele_r_ang,beam_l_ang,beam_r_ang,tele_l_coor,tele_r_coor,tele_l_vec,tele_r_vec,beam_l_coor,beam_r_coor,beam_l_direction,beam_r_direction,beam_l_start,beam_r_start]
-
-
-
-
-
-
-
-
-
-
-
-
-#    def get_received_beam_duration(self,i,t,side,ksi=[0,0]):
-#        [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i)
-#        
-#        # Calculate new tdel
-#        #... code has to be adjusted for telescope length
-#        if side=='l':
-#            L_r = self.wfe.data.L_rl_func_tot(i_self,t)
-#            L_s = self.wfe.data.L_sl_func_tot(i_self,t)
-#        elif side=='r':
-#            L_r = self.wfe.data.L_rr_func_tot(i_self,t)
-#            L_s = self.wfe.data.L_sr_func_tot(i_self,t)
-#
-#        # Received beams (Waluschka)
-#        if side=='l':
-#            coor_start_beam = self.beam_r_coor(i_left,t-L_r)
-#            coor_start_tele = self.tele_r_coor(i_left,t-L_r)
-#            #coor_start = self.beam_r_coor(i_left,t-L_r)
-#            start =  self.tele_r_start(i_left,t-L_r)
-#            direction_out = self.beam_r_direction(i_left,t-L_r)
-#            if self.wfe.data.calc_method=='Abram':
-#                end = self.tele_l_start(i_self,t)
-#                coor_end_beam = self.beam_l_coor(i_self,t)
-#                coor_end_tele = self.tele_l_coor(i_self,t)
-#                direction_in = self.beam_l_direction(i_self,t)
-#            else:
-#                end = self.tele_l_start(i_self,t-L_r)
-#                coor_end_beam = self.beam_l_coor(i_self,t)
-#                coor_end_tele = self.tele_l_coor(i_self,t)
-#                direction_in = self.beam_l_direction(i_self,t+L_s)
-#
-#        elif side=='r':
-#            coor_start_beam = self.beam_l_coor(i_right,t-L_r)
-#            coor_start_tele = self.tele_l_coor(i_right,t-L_r)
-#            start =  self.tele_l_start(i_right,t-L_r)
-#            direction_out = self.beam_l_direction(i_right,t-L_r)
-#            if self.wfe.data.calc_method=='Abram':
-#                end = self.tele_r_start(i_self,t)
-#                coor_end_beam = self.beam_r_coor(i_self,t)
-#                coor_end_tele = self.tele_r_coor(i_self,t)
-#                direction_in = self.beam_r_direction(i_self,t)
-#            else:
-#                end = self.tele_r_start(i_self,t-L_r)
-#                coor_end_beam = self.beam_r_coor(i_self,t)
-#                coor_end_tele = self.tele_r_coor(i_self,t)
-#                direction_in = self.beam_r_direction(i_self,t+L_s)        
-#        
-#        # ksi is in receiiving telescope frame so adapt ksi in beam send frame
-#        [ksix,ksiy]=ksi
-#
-#        ksix_vec = coor_end_tele[2]*ksiy
-#        ksiy_vec = coor_end_tele[1]*ksiy
-#        end = end+ksix_vec+ksiy_vec
-#        target_pos_beam = LA.matmul(coor_start_beam,end-start)
-#        target_pos_tele = LA.matmul(coor_start_tele,end-start)
-#        target_direction = LA.matmul(coor_start_tele,direction_in) #... not inportant
-#        
-#
-#        ret={}
-#        ret['start'] = start
-#        ret['end'] = end
-#        ret['beam_out'] = direction_out
-#        ret['beam_in'] = direction_in
-#        ret['target_pos_beam'] = target_pos_beam #w.r.t. beam
-#        ret['target_pos_tele'] = target_pos_tele #w.r.t. telescope
-#        ret['target_direction'] = target_direction #w.r.t. telescope
-#        ret['coor_start_beam'] = coor_start_beam
-#        ret['coor_start_tele'] = coor_start_tele
-#        ret['coor_end_beam'] = coor_end_beam
-#        ret['coor_end_tele'] = coor_end_tele
-#        ret['L_s'] = L_s
-#        ret['L_r'] = L_r
-#
-#        return ret
-    
-
-
-
-
-
-
-
 
 
     

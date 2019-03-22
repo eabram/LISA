@@ -91,7 +91,7 @@ class WFE():
         self.status_init_pointing=False
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0,offset_tele=0): #...add more variables
         
         #if tele_ang_extra==True:
         #    tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')
@@ -134,7 +134,7 @@ class WFE():
             PAAM_r_ang0=aim0.beam_r_ang
         angles0 = [tele_l_ang0,PAAM_l_ang0,tele_r_ang0,PAAM_r_ang0]
 
-        aim = AIM(self,init=init,sampled=sampled,angles0=angles0,angles_old=angles_old,count=count)
+        aim = AIM(self,init=init,sampled=sampled,angles0=angles0,angles_old=angles_old,count=count,offset_tele=offset_tele)
         aim.tele_aim(self,method=tele_method,iteration=iteration,tele_ang_extra=tele_ang_extra,option=option_tele)
         out = aim.PAAM_control(method=PAAM_method,PAAM_ang_extra=PAAM_ang_extra,option=option_PAAM)
         try:
@@ -413,6 +413,30 @@ class WFE():
         return ps
 
 #Obtining TTL by pointing
+    def offset(self,tstart=False,tend=False,dt=False):
+        if tstart==False:
+            tstart = self.t_all[0]
+        if tend==False:
+            tend=self.t_all[-1]
+        if dt==False:
+            dt=self.t_all[1]-self.t_all[0]
+
+        t_sample = np.linspace(tstart,tend,int((tend-tstart)/dt)+1)
+        
+        offset=[{},{},{},{}]
+        for i in range(1,4):
+            ang_l_in = np.array([self.data.ang_in_l(i,t) for t in t_sample])
+            ang_l_out = np.array([self.data.ang_out_l(i,t) for t in t_sample])
+            ang_r_in = np.array([self.data.ang_in_r(i,t) for t in t_sample])
+            ang_r_out = np.array([self.data.ang_out_r(i,t) for t in t_sample])
+            A = [ang_l_in,ang_l_out,ang_r_in,ang_r_out]
+
+            for j in range(0,len(A)):
+                offset[j][i] = np.nansum(A[j])/(list(np.isnan(A[j])).count(False))
+
+        return offset
+
+
     def mean_angin(self,i,side,dt=False,speed=False): #Used
         t_vec = self.data.t_all
 
@@ -458,6 +482,7 @@ class WFE():
         [i_self,i_left,i_right] = PAA_LISA.utils.i_slr(i_self)
         # Tilt by function
         if side=='l':
+
             tdel = self.data.L_rl_func_tot(i_self,t)
             angx_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',aim.beam_r_ang(i_left,t-tdel),'angx',mode='opposite',ksi=ksi)
             angy_func_send = NOISE_LISA.functions.get_wavefront_parallel(self,aim,i_left,t-tdel,'r',aim.beam_r_ang(i_left,t-tdel),'angy',mode='opposite',ksi=ksi)

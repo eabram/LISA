@@ -2,12 +2,12 @@ from imports import *
 from functions import *
 from parameters import *
 import PAA_LISA
-class Noise(): 
-    
-    def __init__(self,**kwargs):
-        self.wfe = kwargs.pop('wfe',False)
-        self.data = self.wfe.data
-        self.t_all = self.data.t_all 
+class Noise():     
+    def __init__(self,aim,**kwargs):
+        self.aim = aim
+        self.wfe = aim.wfe
+        self.data = aim.wfe.data
+        self.t_all = aim.wfe.t_all 
 
         if self.data==False:
             print('Please import a PAA_LISA object')

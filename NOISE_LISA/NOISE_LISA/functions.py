@@ -17,6 +17,7 @@ def get_nearest_smaller_value(lst,val):
     try:
         return pos
     except UnboundLocalError:
+        return np.nan
         pass
 
 def get_tele_SS(aim,method,i,t,side,x=False,y=False):
@@ -30,19 +31,20 @@ def get_tele_SS(aim,method,i,t,side,x=False,y=False):
             fc=y
         t_adjust = x
         pos_t = get_nearest_smaller_value(t_adjust,t)
-
-        if type(y)==bool:
-            try:
-                return fc(i,t_adjust[pos_t])
-            except:
-                #print(pos_t)
-                return np.nan
-        else:
-            try:
-                return fc[pos_t]
-            except IndexError:
-                print(pos_t)
-                return np.nan
+        
+        if pos_t!=np.nan:
+            if type(y)==bool:
+                try:
+                    return fc(i,t_adjust[pos_t])
+                except:
+                    #print(pos_t)
+                    return np.nan
+            else:
+                try:
+                    return fc[pos_t]
+                except IndexError:
+                    print(pos_t)
+                    return np.nan
 
 def make_nan(function,t,lim):
     [a,b]=lim
@@ -410,7 +412,7 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
             tele_ang = aim.tele_l_ang(i_self,t+tdel0)
-            coor_start = beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang)
+            coor_start = beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang,aim.offset_tele['l'])
             coor_end = aim.tele_r_coor(i_left,t+tdel)
             start=aim.tele_l_start(i_self,t+tdel0)
             end=aim.tele_r_start(i_left,t+tdel)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
@@ -422,7 +424,7 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
             tele_ang = aim.tele_r_ang(i_self,t+tdel0)
-            coor_start =  beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang)
+            coor_start =  beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang,aim.offset_tele['r'])
             coor_end = aim.tele_l_coor(i_right,t+tdel)
             start = aim.tele_r_start(i_self,t+tdel0)
             end=aim.tele_l_start(i_right,t+tdel)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
@@ -462,7 +464,7 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tele_ang_end = angles[0]
                 tele_ang = angles[2]
                 PAAM_ang = aim.beam_r_ang(i_left,t-tdel)
-            coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang)
+            coor_start = beam_coor_out(wfe,i_left,t-tdel,tele_ang,PAAM_ang,aim.offst_tele['r'])
             coor_end = coor_tele(wfe,i_self,t,tele_ang_end)
             start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_left,t-tdel)
             end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
@@ -483,7 +485,7 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tele_ang_end = angles[0]
                 tele_ang = angles[2]
                 PAAM_ang = aim.beam_l_ang(i_right,t-tdel)
-            coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang)
+            coor_start = beam_coor_out(wfe,i_right,t-tdel,tele_ang,PAAM_ang,aim.offset_tele['l'])
             coor_end = coor_tele(wfe,i_self,t,tele_ang_end)
             start = LA.unit(coor_start[0])*wfe.L_tele+wfe.data.LISA.putp(i_right,t-tdel)
             end = LA.unit(coor_end[0])*wfe.L_tele+wfe.data.LISA.putp(i_self,t-tdel0)+coor_end[1]*ksi[1]+coor_end[2]*ksi[0]
@@ -653,9 +655,9 @@ def pos_tele(wfe,i,t,side,ang_tele):
 
     return offset+pointing
 
-def beam_coor_out(wfe,i,t,ang_tele,ang_paam):
+def beam_coor_out(wfe,i,t,ang_tele,ang_paam,ang_tele_offset):
     # Retunrs the coordinate system of the transmitted beam (same as SC but rotated over ang_tele inplane and ang_tele outplane)
-    [r,n,x] = coor_tele(wfe,i,t,ang_tele) #Telescope coordinate system
+    [r,n,x] = coor_tele(wfe,i,t,ang_tele+ang_tele_offset[i]) #Telescope coordinate system
 
     r = LA.unit(LA.rotate(r,x,ang_paam)) # Rotate r in out of plane over ang_paam
     n = np.cross(r,x)
