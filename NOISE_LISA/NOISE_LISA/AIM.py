@@ -10,10 +10,10 @@ class AIM():
     LA = PAA_LISA.la()
 
     def __init__(self,wfe,**kwargs):
-        if wfe!=False:
-            offset_tele = kwargs.pop('offset_tele',True)
-            self.get_offset_inplane(offset_tele)
+        offset_tele = kwargs.pop('offset_tele',True)
+        self.get_offset_inplane(offset_tele)
 
+        if wfe!=False:
             print('Start calculating telescope and PAAM aim')
             
             self.PAAM_method = wfe.PAAM_control_method
