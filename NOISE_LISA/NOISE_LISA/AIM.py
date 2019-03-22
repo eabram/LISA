@@ -125,7 +125,8 @@ class AIM():
         
         elif '/' in option:
             ret = pack.functions.read(direct=option)
-            inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_send mean']
+            #inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_send mean']
+            inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_rec mean']
             for side in ['l','r']:
                 for SC in range(1,4):
                     if side=='l':
@@ -134,7 +135,7 @@ class AIM():
                         label='SC'+str(SC)+', right'
                     ang = inp[label]['y'][3:-3]
 
-                    offset[side][SC] = np.nanmean(ang)
+                    offset[side][SC] = -np.nanmean(ang)
 
 
 
