@@ -38,6 +38,7 @@ class AIM():
                 self.aim0.beam_r_ang = self.angles0[3]
                 self.aim0.wfe=wfe
                 self.aim0.get_coordinate_systems(option='self')
+                self.aim0.offset_tele = self.offset_tele
 
                 self.angles_old=kwargs.pop('angles_old',False)
                 self.aim_old=AIM(False)
@@ -45,6 +46,7 @@ class AIM():
                 self.aim_old.tele_r_ang = self.angles_old[2]
                 self.aim_old.beam_l_ang = self.angles_old[1]
                 self.aim_old.beam_r_ang = self.angles_old[3]
+                self.aim_old.offset_tele = self.offset_tele
                 self.aim_old.wfe=wfe
                 self.aim_old.get_coordinate_systems(option='self')
                 #if self.aim_old==False:
@@ -112,13 +114,29 @@ class AIM():
     
     def get_offset_inplane(self,option):
 
-        if option==0:
-            offset = {'l': {1: 0.0, 2: 0.0, 3: 0.0},
+        offset = {'l': {1: 0.0, 2: 0.0, 3: 0.0},
  'r': {1: 0.0, 2: 0.0, 3: 0.0}}
+        if option==0:
+            pass
 
         elif option==True:
             offset = {'l': {1: -0.00018360462896226676, 2: 0.0, 3: 0.0},
  'r': {1: 0.0, 2: 0.0, 3: 0.0}}
+        
+        elif '/' in option:
+            ret = pack.functions.read(direct=option)
+            inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_send mean']
+            for side in ['l','r']:
+                for SC in range(1,4):
+                    if side=='l':
+                        label='SC'+str(SC)+', left'
+                    elif side=='r':
+                        label='SC'+str(SC)+', right'
+                    ang = inp[label]['y'][3:-3]
+
+                    offset[side][SC] = np.nanmean(ang)
+
+
 
         else:
             raise ValueError("Please select offset tele values or method")
