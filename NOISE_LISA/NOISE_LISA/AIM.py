@@ -11,6 +11,9 @@ class AIM():
 
     def __init__(self,wfe,**kwargs):
         if wfe!=False:
+            offset_tele = kwargs.pop('offset_tele',True)
+            self.get_offset_inplane(offset_tele)
+
             print('Start calculating telescope and PAAM aim')
             
             self.PAAM_method = wfe.PAAM_control_method
@@ -60,8 +63,6 @@ class AIM():
             self.PAAM_method = wfe.PAAM_control_method
             self.tele_method = wfe.tele_control
             self.iteration=0
-            offset_tele = kwargs.pop('offset_tele',True)
-            self.get_offset_inplane(offset_tele)
 
     def get_sampled(self,dt=False):
         try:
