@@ -304,15 +304,15 @@ class AIM():
                     offset_l = self.wfe.mean_angin_l
                     offset_r = self.wfe.mean_angin_r
                 except:
-                    self.wfe.do_mean_angin(speed=True) #...adjust for speed=False option
+                    self.wfe.do_mean_angin()
                     offset_l = self.wfe.mean_angin_l
                     offset_r = self.wfe.mean_angin_r
             else:
                 [offset_l,offset_r] = tele_ang_extra
 
             self.offset =[offset_l,offset_r]
-            self.tele_l_ang = lambda i,t: np.radians(-30)+offset_l[str(i)]*0.5
-            self.tele_r_ang = lambda i,t: np.radians(30)+offset_r[str(i)]*0.5
+            self.tele_l_ang = lambda i,t: np.radians(-30)+offset_l[str(i)]
+            self.tele_r_ang = lambda i,t: np.radians(30)+offset_r[str(i)]
         
         elif method=='full_control':
             [self.tele_ang_l_fc,self.tele_ang_r_fc] = self.tele_control_ang_fc(option=option)

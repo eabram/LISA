@@ -144,7 +144,7 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
     
     if direct=='':
         direct=get_folder()
-    direct=direct+'_'+extr+'/'
+    direct=direct+extr+'/'
     if not os.path.exists(direct):
         os.makedirs(direct)
 
@@ -212,8 +212,6 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
                                     writefile.write(str(point[0])+';'+str(point[1])+'\n')
                                 except IndexError:
                                     writefile.write(str(point)+'\n')
-                            title=title+'_'+k
-                            print(k)
 
 
 

@@ -437,40 +437,29 @@ class WFE():
         return offset
 
 
-    def mean_angin(self,i,side,dt=False,speed=False): #Used
+    def mean_angin(self,i,side,dt=False): #Used
         t_vec = self.data.t_all
 
         if dt==False:
             dt = t_vec[1]-t_vec[0]
-        t_vec = np.linspace(t_vec[0],t_vec[-1],int(((t_vec[-1]-t_vec[0])/dt)+1))
+        t_vec = np.linspace(t_vec[2],t_vec[-1],int(((t_vec[-1]-t_vec[2])/dt)+1))
         #print(t_vec)
         ang=[]
+        
+        if side=='l':
+            ang = -abs(np.nanmean(np.array([self.data.ang_in_l(i,t) for t in t_vec]))) - np.radians(-30)
+        elif side=='r':
+            ang = abs(np.nanmean(np.array([self.data.ang_in_r(i,t) for t in t_vec])))-np.radians(30)
 
-        try:
-            if speed==True:
-                raise AttributeError
-            aim_l = self.aim.tele_l_ang
-            aim_r = self.aim.tele_r_ang
-        except AttributeError:
-            aim_l = self.data.ang_in_l
-            aim_r = self.data.ang_in_r
+        return ang
 
-        for t in t_vec:
-            if side=='l':
-                ang.append(-abs(aim_l(i,t))-np.radians(-30))
-            elif side=='r':
-                ang.append(abs(aim_r(i,t))-np.radians(30))
-        ang = np.array(ang)
-
-        return np.nanmean(ang)
-
-    def do_mean_angin(self,dt=False,speed=False): #Used
+    def do_mean_angin(self,dt=False): #Used
         self.mean_angin_l={}
         self.mean_angin_r={}
 
         for i in range(1,4):
-            self.mean_angin_l[str(i)] = self.mean_angin(i,'l',dt=dt,speed=speed)
-            self.mean_angin_r[str(i)] = self.mean_angin(i,'r',dt=dt,speed=speed)
+            self.mean_angin_l[str(i)] = self.mean_angin(i,'l',dt=dt)
+            self.mean_angin_r[str(i)] = self.mean_angin(i,'r',dt=dt)
 
         return 0
 
