@@ -91,7 +91,7 @@ class WFE():
         self.status_init_pointing=False
 
 
-    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0,offset_tele=0): #...add more variables
+    def get_pointing(self,tele_method = False,PAAM_method=False,iteration=0,tele_ang_extra=True,PAAM_ang_extra=False,init=False,sampled=False,aim_old=False,aim0=False,option_tele='wavefront',option_PAAM='wavefront',count=0,offset_tele='read'): #...add more variables
         
         #if tele_ang_extra==True:
         #    tele_ang_extra = NOISE_LISA.functions.get_extra_ang_mean(self,'tele')

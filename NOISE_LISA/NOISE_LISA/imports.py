@@ -13,6 +13,7 @@ warnings.filterwarnings('ignore', 'The iteration is not making good progress')
 import scipy.optimize
 import sympy as sp
 import random
+import yaml
 
 # Import new packages
 import sys
@@ -25,5 +26,6 @@ from synthlisa import *
 import functions
 import calc_values
 import plotfile
+import add_noise
 
 print('Necessary packages have been imported and loaded')

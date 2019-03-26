@@ -10,12 +10,13 @@ class AIM():
     LA = PAA_LISA.la()
 
     def __init__(self,wfe,**kwargs):
-        offset_tele = kwargs.pop('offset_tele',True)
-        self.get_offset_inplane(offset_tele)
+        self.wfe = wfe
+        print(wfe)
+        offset_tele = kwargs.pop('offset_tele','read')
 
         if wfe!=False:
             print('Start calculating telescope and PAAM aim')
-            
+            self.get_offset_inplane(offset_tele)
             self.PAAM_method = wfe.PAAM_control_method
             if self.PAAM_method =='SS_lim':
                 self.FOV_control = kwargs.pop('FOV_control',1e-6)
@@ -27,16 +28,15 @@ class AIM():
             LA = PAA_LISA.la()
             import imports
             
-            self.wfe = wfe
             self.init_set = kwargs.pop('init',False)
             if self.init_set!=True:
                 self.angles0=kwargs.pop('angles0',False)
                 self.aim0=AIM(False)
+                self.aim0.wfe=wfe
                 self.aim0.tele_l_ang = self.angles0[0]
                 self.aim0.tele_r_ang = self.angles0[2]
                 self.aim0.beam_l_ang = self.angles0[1]
                 self.aim0.beam_r_ang = self.angles0[3]
-                self.aim0.wfe=wfe
                 self.aim0.get_coordinate_systems(option='self')
                 self.aim0.offset_tele = self.offset_tele
 
@@ -65,6 +65,32 @@ class AIM():
             self.PAAM_method = wfe.PAAM_control_method
             self.tele_method = wfe.tele_control
             self.iteration=0
+
+    def get_noise(self,aim_old=False,dt=100):
+        if aim_old==False:
+            aim_old = self
+        tele_l={}
+        tele_r={}
+        PAAM_l={}
+        PAAM_r={}
+        for SC in range(1,4):
+            tele_l[SC] = pack.add_noise.aim_noise(SC,'l',aim_old,'tele',dt=dt)[0]
+            tele_r[SC] = pack.add_noise.aim_noise(SC,'r',aim_old,'tele',dt=dt)[0]
+            PAAM_l[SC] = pack.add_noise.aim_noise(SC,'l',aim_old,'tele',dt=dt)[0]
+            PAAM_l[SC] = pack.add_noise.aim_noise(SC,'r',aim_old,'tele',dt=dt)[0]
+        aim_new = pack.AIM(wfe=False)
+        aim_new.wfe = aim_old.wfe
+        aim_new.tele_l_ang = lambda i,t: tele_l[i](t)
+        aim_new.tele_r_ang = lambda i,t: tele_r[i](t)
+        aim_new.beam_l_ang = lambda i,t: beam_l[i](t)
+        aim_new.beam_r_ang = lambda i,t: beam_r[i](t)
+        aim_new.get_coordinate_systems(option='self') #...add position jitter
+        aim_new.offset_tele = aim_old.offset_tele
+
+        return aim_new
+
+
+
 
     def get_sampled(self,dt=False):
         try:
@@ -126,7 +152,13 @@ class AIM():
         elif '/' in option:
             ret = pack.functions.read(direct=option)
             #inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_send mean']
-            inp = ret['full_control']['full_control']['0']['tele_center__PAAM_center']['angx_func_rec mean']
+            for k1 in ret:
+                for k2 in ret[k1]:
+                    for k3 in ret[k1][k2]:
+                        for k4 in ret[k1][k2][k3]:
+                            inp = ret[k1][k2][k3][k4]['angx_func_rec mean']
+                            break
+
             for side in ['l','r']:
                 for SC in range(1,4):
                     if side=='l':
@@ -136,8 +168,22 @@ class AIM():
                     ang = inp[label]['y'][3:-3]
 
                     offset[side][SC] = -np.nanmean(ang)
+        elif 'read'==option:
+            read_folder = os.path.dirname(os.path.realpath(__file__)).split('NOISE_LISA')[0]+'parameters/'+self.wfe.data.calc_method+'/'
+            print(read_folder)
 
-
+            for (dirpath, dirnames, filenames) in os.walk(read_folder):
+                for f in filenames:
+                    read_file = open(dirpath+f)
+                    break
+            out=''
+            count=0
+            for line in read_file:
+                count=count+1
+                if count>1:
+                    out=out+line.split('\n')[0]
+            offset = yaml.load(out)
+            read_file.close()
 
         else:
             raise ValueError("Please select offset tele values or method")
