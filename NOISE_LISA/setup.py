@@ -1,5 +1,5 @@
 from setuptools import setup
-
+import os
 setup(name='NOISE_LISA',
       version='0.1',
       description='Obtaining the noise of LISA and calculate its influence on the signal',
@@ -8,6 +8,8 @@ setup(name='NOISE_LISA',
       author_email='esterabram@hotmail.com',
       license='Nikhef/TNO',
       packages=['NOISE_LISA'],
-      zip_safe=False)
+      zip_safe=False,
+      data_files=[os.path.dirname(os.path.realpath(__file__))+'/NOISE_LISA/paramteres/']
+      )
 
-include_package_data=True
+#include_package_data=True
