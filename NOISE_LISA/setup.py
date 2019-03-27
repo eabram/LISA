@@ -10,3 +10,4 @@ setup(name='NOISE_LISA',
       packages=['NOISE_LISA'],
       zip_safe=False)
 
+include_package_data=True
