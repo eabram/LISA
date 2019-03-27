@@ -105,7 +105,7 @@ def get_PAAM_jitter(aim):
         aim.noise = NOISE_LISA.Noise(aim)
 
     f0=1.0e-6
-    f_max=1.0e-3
+    f_max=1.0e-2
     N=4096
     angular_jitter_all = {}
     long_jitter_all = {}
@@ -136,45 +136,34 @@ def get_PAAM_jitter(aim):
             long_jitter_all[i][s] = long_jitter
             rotax_jitter_all[i][s] = rotax_jitter
 
-    aim.noise.angular_jitter = angular_jitter_all
-    aim.noise.long_jitter = long_jitter_all
-    aim.noise.rotax_jitter = rotax_jitter_all
+    #aim.noise.angular_jitter = angular_jitter_all
+    #aim.noise.long_jitter = long_jitter_all
+    #aim.noise.rotax_jitter = rotax_jitter_all
 
-    return 0
+    return [angular_jitter_all,long_jitter_all,rotax_jitter_all]
 
-def get_OPD(aim,beam_ang=False):
-
-    if beam_ang==False:
-        beam_l_ang = aim.beam_l_ang
-        beam_r_ang = aim.beam_r_ang
-    else:
-        [beam_l_ang,beam_r_ang] = beam_ang
+def get_OPD(i,s,aim_new,aim_old,beam_l_ang=False,beam_r_ang=False):
+   
+    if s =='l':
+        if beam_l_ang==False:
+            alpha0 = lambda t: aim_old.beam_l_ang(i,t)
+        else:
+            alpha0 = beam_l_ang[i]
+    elif s =='r':
+        if beam_r_ang==False:
+            alpha0 = lambda t: aim_old.beam_r_ang(i,t)
+        else:
+            alpha0 = beam_r_ang[i]
     
-    Dx_all={}
-    Dy_all={}
-    alpha_all={}
-    OPD_all={}
-    for s in ['l','r']:
-        Dx = lambda i,t: aim.Dx_stat[i][s](t) +aim.noise.long_jitter[i][s](t)+aim.noise.rotax_jitter[i][s](t)
-        Dy = lambda i,t: aim.Dy_stat[i][s](t)
-        if s=='l':
-            alpha = lambda i,t: beam_l_ang(i,t) + aim.noise.angular_jitter[i][s](t)
-        elif s=='r':
-            alpha = lambda i,t: beam_r_ang(i,t) + aim.noise.angular_jitter[i][s](t)
 
-        OPD = lambda i,t: (Dy(i,t)-Dx(i,t)*np.tan(alpha(i,t)))*(np.sin(alpha(i,t))/np.sin(np.radians(135)))*(1-np.cos(np.radians(90)-2*alpha(i,t)))
+    Dx_all = lambda t: aim_new.Dx_stat[i][s] +aim_new.noise.long_jitter[i][s](t)+aim_new.noise.rotax_jitter[i][s](t)
+    Dy_all = lambda t: aim_new.Dy_stat[i][s]
+    alpha_all = lambda t: alpha0(t) + aim_new.noise.angular_jitter[i][s](t)
 
-        Dx_all[s] = Dx
-        Dy_all[s] = Dy
-        alpha_all[s] = alpha
-        OPD_all[s] = OPD
+    OPD_all = lambda t: (Dy_all(t)-Dx_all(t)*np.tan(alpha_all(t)))*(np.sin(alpha_all(t))/np.sin(np.radians(135)))*(1-np.cos(np.radians(90)-2*alpha_all(t)))
 
-    aim.noise.Dx = Dx_all
-    aim.noise.Dy = Dy_all
-    aim.noise.OPD = OPD_all
-    aim.noise.alpha = alpha_all
 
-    return 0
+    return [Dx_all,Dy_all,OPD_all,alpha_all]
 
 def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
     aim_new = NOISE_LISA.AIM(wfe=False)
@@ -189,42 +178,66 @@ def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
             dt_tele=100
         else:
             dt_tele = aim.wfe.t_all[1]-aim.wfe.t_all[0]
+        dt_tele = 24*3600.0
 
 
-    tele_l_ang = {}
-    tele_r_ang = {}
-    beam_l_ang = {}
-    beam_r_ang = {}
+    tele_l_ang_res = {}
+    tele_r_ang_res = {}
+    beam_l_ang_res = {}
+    beam_r_ang_res = {}
     for i in range(1,4):
-        tele_l_ang[i]= response(i,'l',aim,dt=dt_tele,component='tele')[1]
-        tele_r_ang[i]= response(i,'r',aim,dt=dt_tele,component='tele')[1]
-        beam_l_ang[i]= response(i,'l',aim,dt=dt_PAAM,component='PAAM')[1]
-        beam_r_ang[i]= response(i,'r',aim,dt=dt_PAAM,component='PAAM')[1]
+        tele_l_ang_res[i]= response(i,'l',aim,dt=dt_tele,component='tele')[1]
+        tele_r_ang_res[i]= response(i,'r',aim,dt=dt_tele,component='tele')[1]
+        beam_l_ang_res[i]= response(i,'l',aim,dt=dt_PAAM,component='PAAM')[1]
+        beam_r_ang_res[i]= response(i,'r',aim,dt=dt_PAAM,component='PAAM')[1]
 
     aim_new.tele_l_ang = lambda i,t: tele_l_ang[i](t)
     aim_new.tele_r_ang = lambda i,t: tele_r_ang[i](t)
     #aim_new.beam_l_ang = lambda i,t: beam_l_ang[i](t)
     #aim_new.beam_r_ang = lambda i,t: beam_r_ang[i](t)
     
-    beam_ang = [lambda i,t: beam_l_ang[i](t),lambda i,t: beam_r_ang[i](t)]
+    #beam_ang = [beam_l_ang,beam_r_ang]
+    #beam_ang = [False,False]
 
     try:
+        aim_new.noise
         del aim_new.noise
-    except:
-        pass
-    NOISE_LISA.add_noise.get_PAAM_jitter(aim_new)
-    NOISE_LISA.add_noise.get_OPD(aim_new,beam_ang)
+    except AttributeError:
+        aim_new.noise = NOISE_LISA.Noise(aim_new)
 
-    aim_new.beam_l_ang = aim_new.noise.alpha['l']
-    aim_new.beam_r_ang = aim_new.noise.alpha['r']
-
-    aim_new.offset_tele = aim.offset_tele
-    aim_new.get_coordinate_systems(option='self')
-    aim_new.tele_option = aim.tele_option
-    aim_new.PAAM_option = aim.PAAM_option
-    aim_new.iteration = aim.iteration
+    [angular_jitter_all,long_jitter_all,rotax_jitter_all] = get_PAAM_jitter(aim_new)
+    aim_new.noise.angular_jitter = angular_jitter_all
+    aim_new.noise.long_jitter = long_jitter_all
+    aim_new.noise.rotax_jitter = rotax_jitter_all
     
-    return aim_new
+    aim_new.noise.Dx={}
+    aim_new.noise.Dy={}
+    aim_new.noise.OPD={}
+    aim_new.noise.alpha={}
+    
+    for i in range(1,4):
+        aim_new.noise.Dx[i]={}
+        aim_new.noise.Dy[i]={}
+        aim_new.noise.OPD[i]={}
+        aim_new.noise.alpha[i]={}
+        for s in ['l','r']:
+            [Dx_all,Dy_all,OPD_all,alpha_all] = get_OPD(i,s,aim_new,aim,beam_l_ang_res,beam_r_ang_res)
+            aim_new.noise.Dx[i][s] = Dx_all
+            aim_new.noise.Dy[i][s] = Dy_all
+            aim_new.noise.OPD[i][s] = OPD_all
+            aim_new.noise.alpha[i][s] = alpha_all
+
+    aim_new.beam_l_ang = lambda i,t: aim_new.noise.alpha[i]['l'](t)
+    aim_new.beam_r_ang = lambda i,t: aim_new.noise.alpha[i]['r'](t)
+
+    #aim_new.offset_tele = aim.offset_tele
+    #aim_new.get_coordinate_systems(option='self')
+    #aim_new.tele_option = aim.tele_option
+    #aim_new.PAAM_option = aim.PAAM_option
+    #aim_new.iteration = aim.iteration
+    
+    return aim_new,beam_l_ang_res,beam_r_ang_res#,[Dx_all,Dy_all,OPD_all,alpha_all]
+
 
 
 
