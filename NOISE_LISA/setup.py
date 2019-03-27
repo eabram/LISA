@@ -1,5 +1,13 @@
 from setuptools import setup
 import os
+import glob
+
+data_folder = 'NOISE_LISA/parameters/'
+filename_list=[]
+for filename in glob.iglob(data_folder+'/**/*'):
+    print (filename)
+    filename_list.append(filename)
+
 setup(name='NOISE_LISA',
       version='0.1',
       description='Obtaining the noise of LISA and calculate its influence on the signal',
@@ -12,7 +20,7 @@ setup(name='NOISE_LISA',
       package_data={'NOISE_LISA': ['parameters/*.txt']},
       zip_safe=False,
       #include_package_data=True
-      data_files=[('parameters',['*.txt'])],
+      data_files=[('parameters',[filename_list])],
       #package_data = {'':['*.txt'],}
       )
 
