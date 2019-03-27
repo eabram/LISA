@@ -9,7 +9,7 @@ setup(name='NOISE_LISA',
       license='Nikhef/TNO',
       packages=['NOISE_LISA'],
       zip_safe=False,
-      data_files=['/NOISE_LISA/parameters/']
+      data_files=['/NOISE_LISA/parameters/*txt']
       )
 
 #include_package_data=True
