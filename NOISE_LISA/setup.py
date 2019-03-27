@@ -2,8 +2,8 @@ from setuptools import setup
 import os
 import glob
 
-data_folder = 'parameters/'
-filename_list=['parameters/Waluschka/tele_offset.txt','parameters/Abram/tele_offset.txt']
+#data_folder = 'parameters/'
+#filename_list=['parameters/Waluschka/tele_offset.txt','parameters/Abram/tele_offset.txt']
 #for filename in glob.iglob(data_folder+'/**/*'):
 #    print (filename)
 #    filename_list.append(filename.split(data_folder)[-1])
@@ -17,10 +17,10 @@ setup(name='NOISE_LISA',
       license='Nikhef/TNO',
       packages=['NOISE_LISA'],
       package_dir={'NOISE_LISA': 'NOISE_LISA'},
-      package_data={'NOISE_LISA': ['parameters/*.txt']},
+      package_data={'NOISE_LISA': ['parameters/Abram/*.txt','parameters/Waluschka/*.txt']},
       zip_safe=False,
       #include_package_data=True
-      data_files=[('parameters',filename_list)],
+      i#data_files=[('parameters',filename_list)],
       #package_data = {'':['*.txt'],}
       )
 
