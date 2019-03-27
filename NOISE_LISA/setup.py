@@ -9,7 +9,7 @@ setup(name='NOISE_LISA',
       license='Nikhef/TNO',
       packages=['NOISE_LISA'],
       zip_safe=False,
-      data_files=[os.path.dirname(os.path.realpath(__file__))+'/NOISE_LISA/paramteres/']
+      data_files=[os.path.dirname(os.path.realpath(__file__))+'/NOISE_LISA/parameters/']
       )
 
 #include_package_data=True
