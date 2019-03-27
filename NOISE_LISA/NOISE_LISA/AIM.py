@@ -169,7 +169,7 @@ class AIM():
 
                     offset[side][SC] = -np.nanmean(ang)
         elif 'read'==option:
-            read_folder = os.path.dirname(os.path.realpath(__file__))+'parameters/'+self.wfe.data.calc_method+'/'
+            read_folder = os.path.dirname(os.path.realpath(__file__))+'/parameters/'+self.wfe.data.calc_method+'/'
             print(read_folder)
 
             for (dirpath, dirnames, filenames) in os.walk(read_folder):
