@@ -8,8 +8,10 @@ setup(name='NOISE_LISA',
       author_email='esterabram@hotmail.com',
       license='Nikhef/TNO',
       packages=['NOISE_LISA'],
+      package_dir={'NOISE_LISA': 'NOISE_LISA'},
+      package_data={'NOISE_LISA': ['NOISE_LISA/parameters/*.txt']},
       zip_safe=False,
-      include_package_data=True
+      #include_package_data=True
       #data_files=['/NOISE_LISA/parameters/*']
       #package_data = {'':['*.txt'],}
       )
