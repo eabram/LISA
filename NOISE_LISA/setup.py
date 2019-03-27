@@ -6,7 +6,7 @@ data_folder = 'parameters/'
 filename_list=[]
 for filename in glob.iglob(data_folder+'/**/*'):
     print (filename)
-    filename_list.append(filename)
+    filename_list.append(filename.split(data_folder)[-1])
 
 setup(name='NOISE_LISA',
       version='0.1',
