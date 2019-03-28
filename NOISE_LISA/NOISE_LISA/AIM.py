@@ -67,13 +67,13 @@ class AIM():
             self.iteration=0
     
     def copy_aim(self,aim_old): #...copying all essential parameters
-        self.wfe = aim_old.wfe
-        self.tele_method = aim_old.tele_method
-        self.tele_option = aim_old.tele_option
-        self.PAAM_option = aim_old.PAAM_option
-        self.iteration = aim_old.iteration
-        self.PAAM_method = aim_old.PAAM_method
-        self.offset_tele = aim_old.offset_tele
+        for attr in aim_old.__dict__.keys():
+            if attr not in self.__dict__.keys():
+                setattr(self,attr,aim_old.__dict__[attr])
+
+        
+        return 0 
+
 
 
     def get_noise(self,aim_old=False,dt=100):
