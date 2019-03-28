@@ -7,7 +7,7 @@ import control
 def tele_param(dz_dis=False):
     m=100.0
     c=0.1
-    k=0.1
+    k=0.01
     dz = c/(2*(m*k)**0.5)
     if dz_dis==False:
         C=c
@@ -18,12 +18,12 @@ def tele_param(dz_dis=False):
     print(dz_dis,oo1)
     sys = control.tf([1],[m,C,k])
 
-    return sys
+    return sys,[m,C,k]
 
 
 # Angular noise
 def response(i,side,aim,dz_dis=0.05,dt=False,t_start=False,t_end=False,component='tele'):
-    sys = tele_param(dz_dis=dz_dis)
+    sys,[m,c,k] = tele_param(dz_dis=dz_dis)
     if t_start==False:
         t_start = aim.wfe.t_all[3]
     else:
@@ -47,7 +47,7 @@ def response(i,side,aim,dz_dis=0.05,dt=False,t_start=False,t_end=False,component
     U=[]
     for t in T:
         U.append(func0(t))
-    U=np.array(U)
+    U=np.array(U)*k
     #U = np.array([func0(t) for t in T])
     
     print('Start calculating response')
@@ -174,13 +174,13 @@ def get_OPD(i,s,aim_new,aim_old,beam_l_ang=False,beam_r_ang=False):
     return [Dx_all,Dy_all,OPD_all,alpha_all]
 
 def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
-    if jit_on==False:\
+    if jit_on==False:
         aim_new = aim
 
     else:
         aim_new = NOISE_LISA.AIM(wfe=False)
-        aim_new.copy_aim(aim)
 
+        aim_new.copy_aim(aim,option='new_angles')
         if dt_PAAM==False:
             dt_PAAM = aim.wfe.t_all[1]-aim.wfe.t_all[0]
         if dt_tele==False:
@@ -188,7 +188,6 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
                 dt_tele=100
             else:
                 dt_tele = aim.wfe.t_all[1]-aim.wfe.t_all[0]
-            dt_tele = 24*3600.0
 
 
         tele_l_ang_res = {}
@@ -209,7 +208,7 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
         #beam_ang = [beam_l_ang,beam_r_ang]
         #beam_ang = [False,False]
         
-        aim_new.wfe = aim.wfe
+        #aim_new.wfe = aim.wfe
         try:
             aim_new.noise
             del aim_new.noise
@@ -240,9 +239,9 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
 
         aim_new.beam_l_ang = lambda i,t: aim_new.noise.alpha[i]['l'](t)
         aim_new.beam_r_ang = lambda i,t: aim_new.noise.alpha[i]['r'](t)
-        
+                
         aim_new.get_coordinate_systems(iteration_val=False,option='self')
-
+        
     return aim_new
 
 def SC_jitter(wfe=False,aim=False): #Hier code van Lupi

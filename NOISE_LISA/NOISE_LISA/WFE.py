@@ -507,12 +507,9 @@ class WFE():
         
         
 
-        OPD_l = aim.noise.OPD[i_self]['l'](t)
-        OPD_r = aim.noise.OPD[i_self]['r'](t)
-        Dx_l = aim.noise.Dx[i_self]['l'](t)
-        Dx_r = aim.noise.Dx[i_self]['r'](t)
-        Dy_l = aim.noise.Dy[i_self]['l'](t)
-        Dy_r = aim.noise.Dy[i_self]['r'](t)
+        OPD = aim.noise.OPD[i_self][side](t)
+        Dx = aim.noise.Dx[i_self][side](t)
+        Dy = aim.noise.Dy[i_self][side](t)
 
 
         if type(ret)!=list:

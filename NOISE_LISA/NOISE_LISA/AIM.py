@@ -66,12 +66,32 @@ class AIM():
             self.tele_method = wfe.tele_control
             self.iteration=0
     
-    def copy_aim(self,aim_old): #...copying all essential parameters
+    def copy_aim(self,aim_old,option=False): #...copying all essential parameters
         for attr in aim_old.__dict__.keys():
-            if attr not in self.__dict__.keys():
-                setattr(self,attr,aim_old.__dict__[attr])
+            if attr not in self.__dict__.keys() or attr=='wfe':
+                t = str(aim_old.__dict__[attr])
+                go=False
+                if option!=False:
+                    if option=='new_angles':
+                        if 'instance' in t:
+                            print(t)
+                            if 'WFE' in t:
+                                if type(self.wfe)==bool:
+                                    go=True
+                                else:
+                                    go=False
+                            else:
+                                go=False
+                        elif 'function' in t:
+                            go =False
+                        else:
+                            go=True
+                else:
+                    go=True
+                if go==True:
+                    #print(attr)
+                    setattr(self,attr,aim_old.__dict__[attr])
 
-        
         return 0 
 
 
@@ -437,131 +457,6 @@ class AIM():
         return 0
 
 
-
-        
-
-    def tele_aim_old(self,method=False,dt=3600*24*10,jitter=False,tau=3600*24*5,mode='overdamped',iteration=0,tele_ang_extra=True,option='wavefront'):
-        self.option_tele=option
-
-        if method == False:
-            method = self.tele_method
-        else:
-            self.tele_method = method
-
-        try:
-            print('The telescope control method is: '+method)
-        except:
-            print('The telescope control method is: user defined')
-
-        print(' ')
-        
-        # Calculating telescope angle for 'full_control', 'no_control' and 'SS' (step and stair)
-        if method=='full_control':
-            self.tele_control_ang_fc(option=option)
-            tele_l = self.tele_ang_l_fc
-            tele_r = self.tele_ang_r_fc
-            self.tele_l_ang_g = lambda i,t: pack.functions.get_tele_fc(self.wfe,self.aim0,i,t,'l',lim=1e-10)
-            self.tele_r_ang_g = lambda i,t: pack.functions.get_tele_fc(self.wfe,self.aim0,i,t,'r',lim=1e-10)
-       
-        elif method=='no_control':
-            #self.do_static_tele_angle('tele')
-            if tele_ang_extra==False:
-                offset_l = {'1':0,'2':0,'3':0}
-                offset_r = {'1':0,'2':0,'3':0}
-            elif tele_ang_extra==True:
-                try:
-                    offset_l = self.wfe.mean_angin_l
-                    offset_r = self.wfe.mean_angin_r
-                except:
-                    self.wfe.do_mean_angin(speed=True) #...adjust for speed=False option
-                    offset_l = self.wfe.mean_angin_l
-                    offset_r = self.wfe.mean_angin_r
-            else:
-                [offset_l,offset_r] = tele_ang_extra
-            
-            self.offset =[offset_l,offset_r]
-            tele_l = lambda i,t: np.radians(-30)+offset_l[str(i)]*0.5
-            tele_r = lambda i,t: np.radians(30)+offset_r[str(i)]*0.5
-
-
-        elif method=='SS': #After dt, the telescope is pointed again
-            tele_l_SS = lambda i,t: self.tele_ang_l_fc(i,t-(t%dt))
-            tele_r_SS = lambda i,t: self.tele_ang_r_fc(i,t-(t%dt))
-            print('Taken '+mode+' step response for telescope SS control with tau='+str(tau)+'sec')
-            self.tele_l_ang_SS = tele_l_SS
-            self.tele_r_ang_SS = tele_r_SS
-        
-        elif 'SS' in method:
-            m = method.split('SS_')[-1]
-            print('SS by '+m)
-            print('')
-            ret={}
-            t_all={}
-            tele_ang_adjust={}
-            PAAM_ang_adjust={}
-            for link in range(1,4):
-                if self.count==0:
-                    try:
-                        self.beam_r_ang
-                    except AttributeError:
-                        self.beam_l_ang = self.wfe.data.PAA_func['l_out']
-                        self.beam_r_ang = self.wfe.data.PAA_func['r_out']
-                    ret,t_all,tele_ang_adjust,PAAM_ang_adjust = pack.functions.get_SS(self.wfe,self,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust,PAAM_ang=PAAM_ang_adjust)
-                else:
-                    ret,t_all,tele_ang_adjust,PAAM_ang_adjust = pack.functions.get_SS(self.wfe,self.aim_old,link,ret=ret,m=m,t_all=t_all,tele_ang=tele_ang_adjust,PAAM_ang=PAAM_ang_adjust)
-
-            self.t_adjust = t_all
-            self.tele_ang_adjust = tele_ang_adjust
-            self.PAAM_ang_adjust = PAAM_ang_adjust
-
-            self.tele_l_ang_SS = lambda i,t: ret['tele'][str(i)]['l'](t)
-            self.tele_r_ang_SS = lambda i,t: ret['tele'][str(i)]['r'](t)
-            self.PAAM_l_ang_SS = lambda i,t: ret['PAAM'][str(i)]['l'](t)
-            self.PAAM_r_ang_SS = lambda i,t: ret['PAAM'][str(i)]['r'](t)
-
-
-            tele_l = self.tele_l_ang_SS
-            tele_r = self.tele_r_ang_SS
-        
-        elif type(method)==dict:
-            tele_l = lambda i,t: pack.functions.get_tele_SS(self.aim_old,method,i,t,'l')
-            tele_r = lambda i,t: pack.functions.get_tele_SS(self.aim_old,method,i,t,'r')
-
-        elif type(method)==list and method[0]=='Imported pointing':
-            print(method[0])
-            tele_l = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'l',x=method[1],y=method[2])
-            tele_r = lambda i,t: pack.functions.get_tele_SS(False,False,i,t,'r',x=method[1],y=method[2])
-            
-
-        else:
-            raise ValueError('Please select a valid telescope pointing method')
-
-        # Adding jitter
-        if jitter!=False:
-            self.tele_l_ang = lambda i,t: self.add_jitter(tele_l,i,t,1e-6,1e10,dt=0.1)
-            self.tele_r_ang = lambda i,t: self.add_jitter(tele_r,i,t,1e-6,1e10,dt=0.1)
-        else:
-            #try:
-            #    tele_l_ang_old = self.tele_l_ang
-            #    tele_r_ang_old = self.tele_r_ang
-            #    self.tele_l_ang = lambda i,t: (tele_l_ang_old(i,t)+tele_l(i,t))/np.float64(2.0)
-            #    self.tele_r_ang = lambda i,t: (tele_r_ang_old(i,t)+tele_r(i,t))/np.float64(2.0)
-            #except AttributeError:
-            #        self.tele_l_ang = tele_l
-            #        self.tele_r_ang = tele_r
-
-
-            #self.tele_l_ang = lambda i,t: (tele_l(i,t) - self.tele_l_ang(i,t))*0.5 +self.tele_l_ang(i,t)
-            #self.tele_r_ang = lambda i,t: (tele_r(i,t) - self.tele_r_ang(i,t))*0.5 +self.tele_r_ang(i,t)
-            
-            if method=='SS':
-                self.tele_l_ang = tele_l_SS
-                self.tele_r_ang = tele_r_SS
-            else:
-                self.tele_l_ang = tele_l
-                self.tele_r_ang = tele_r
-        
-        return 0
 
     def get_tele_coor(self,i,t,tele_l_ang,tele_r_ang):
         # Calculating new pointing vectors and coordinate system
