@@ -213,7 +213,7 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
             aim_new.noise
             del aim_new.noise
         except AttributeError:
-            aim_new.noise = NOISE_LISA.Noise(aim_new)
+            aim_new.noise = NOISE_LISA.Noise(aim)
 
         [angular_jitter_all,long_jitter_all,rotax_jitter_all] = get_PAAM_jitter(aim_new,jit_on)
         aim_new.noise.angular_jitter = angular_jitter_all
