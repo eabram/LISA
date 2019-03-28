@@ -871,7 +871,7 @@ def get_SS(wfe,aim,link,ret={},t_all={},ang_output={},m='tilt',component='tele')
         check=True
         try:
             t_solve = scipy.optimize.brentq(FOV_func,t_adjust[-1],t_end,xtol=1)
-            print(t_solve/(3600*24.0))
+            #print(t_solve/(3600*24.0))
             t_adjust.append(t_solve)
         except ValueError,e:
             print e
