@@ -141,9 +141,10 @@ def nanmean(l):
 
 
 
-def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[],opt_date=True,opt_time=True):
+def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[],opt_date=True,opt_time=True,time=''):
     date = get_date(option='date')
-    time = get_date(option='time')
+    if time=='':
+        time = get_date(option='time')
     
     if direct=='':
         direct=get_folder(opt_date=opt_date)
