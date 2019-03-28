@@ -142,7 +142,6 @@ class WFE():
         except AttributeError:
             aim.tele_option = option_tele
             aim.PAAM_option = option_PAAM
-
         
         return out
 
@@ -505,6 +504,16 @@ class WFE():
         elif side=='r':
             PAAM_ang=aim.beam_r_ang(i_self,t)
             tele_ang=aim.tele_r_ang(i_self,t)
+        
+        
+
+        OPD_l = aim.noise.OPD[i_self]['l'](t)
+        OPD_r = aim.noise.OPD[i_self]['r'](t)
+        Dx_l = aim.noise.Dx[i_self]['l'](t)
+        Dx_r = aim.noise.Dx[i_self]['r'](t)
+        Dy_l = aim.noise.Dy[i_self]['l'](t)
+        Dy_r = aim.noise.Dy[i_self]['r'](t)
+
 
         if type(ret)!=list:
             ret = [ret]

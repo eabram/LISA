@@ -47,11 +47,10 @@ def response(i,side,aim,dz_dis=0.05,dt=False,t_start=False,t_end=False,component
     U=[]
     for t in T:
         U.append(func0(t))
-        print(U[-1])
     U=np.array(U)
     #U = np.array([func0(t) for t in T])
     
-    print('Start calculsting response')
+    print('Start calculating response')
     out = control.forced_response(sys,T=T,U=U,X0=U[0])
     print('Done\n\n')
     
@@ -78,9 +77,14 @@ def aim_noise(i,side,aim,componenet,offset=1e-6,dz_dis=0.05,dt=False,t_start=Fal
 
 
 # PAAM 
-def get_static():
-    std_x = 1e-3 #...source Peijnenburg article
-    std_y = 50e-6
+def get_static(jit_on):
+    if jit_on==True:
+        std_x = 1.0e-3 #...source Peijnenburg article
+        std_y = 50.0e-6
+    elif jit_on==False:
+        std_x = 0
+        std_y = 0
+
 
     Dx={}
     Dy={}
@@ -94,9 +98,9 @@ def get_static():
 
     return Dx, Dy
 
-def get_PAAM_jitter(aim):
+def get_PAAM_jitter(aim,jit_on):
     t_plot =aim.wfe.t_all[4:-4]
-    aim.Dx_stat,aim.Dy_stat = get_static()
+    aim.Dx_stat,aim.Dy_stat = get_static(jit_on)
     n = lambda f: (1+0.0028/f)**2 # noise shape function
 
     try:
@@ -111,10 +115,14 @@ def get_PAAM_jitter(aim):
     long_jitter_all = {}
     rotax_jitter_all = {}
     
-    PSD_ang_jit = [lambda f: 8.0*n(f),1e-9]
-    PSD_long_jit = [lambda f: 0.28*n(f),1e-9]
-    PSD_rotax_jit = [lambda f: 0.30*n(f),1e-9]
-
+    if jit_on==True:
+        PSD_ang_jit = [lambda f: 8.0*n(f),1e-9]
+        PSD_long_jit = [lambda f: 0.28*n(f),1e-9]
+        PSD_rotax_jit = [lambda f: 0.30*n(f),1e-9]
+    elif jit_on==False:
+        PSD_ang_jit = [lambda f: 0.0*n(f),1e-9]
+        PSD_long_jit = [lambda f: 0.0*n(f),1e-9]
+        PSD_rotax_jit = [lambda f: 0.0*n(f),1e-9]
     
 
     for i in range(1,4):
@@ -165,11 +173,9 @@ def get_OPD(i,s,aim_new,aim_old,beam_l_ang=False,beam_r_ang=False):
 
     return [Dx_all,Dy_all,OPD_all,alpha_all]
 
-def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
+def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
     aim_new = NOISE_LISA.AIM(wfe=False)
-    aim_new.wfe = aim.wfe
-    aim_new.tele_method = aim.tele_method
-    aim_new.PAAM_method = aim.PAAM_method
+    aim_new.copy_aim(aim)
 
     if dt_PAAM==False:
         dt_PAAM = aim.wfe.t_all[1]-aim.wfe.t_all[0]
@@ -191,8 +197,8 @@ def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
         beam_l_ang_res[i]= response(i,'l',aim,dt=dt_PAAM,component='PAAM')[1]
         beam_r_ang_res[i]= response(i,'r',aim,dt=dt_PAAM,component='PAAM')[1]
 
-    aim_new.tele_l_ang = lambda i,t: tele_l_ang[i](t)
-    aim_new.tele_r_ang = lambda i,t: tele_r_ang[i](t)
+    aim_new.tele_l_ang = lambda i,t: tele_l_ang_res[i](t)
+    aim_new.tele_r_ang = lambda i,t: tele_r_ang_res[i](t)
     #aim_new.beam_l_ang = lambda i,t: beam_l_ang[i](t)
     #aim_new.beam_r_ang = lambda i,t: beam_r_ang[i](t)
     
@@ -205,7 +211,7 @@ def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
     except AttributeError:
         aim_new.noise = NOISE_LISA.Noise(aim_new)
 
-    [angular_jitter_all,long_jitter_all,rotax_jitter_all] = get_PAAM_jitter(aim_new)
+    [angular_jitter_all,long_jitter_all,rotax_jitter_all] = get_PAAM_jitter(aim_new,jit_on)
     aim_new.noise.angular_jitter = angular_jitter_all
     aim_new.noise.long_jitter = long_jitter_all
     aim_new.noise.rotax_jitter = rotax_jitter_all
@@ -229,14 +235,20 @@ def get_jittered_aim(aim,dt_tele=False,dt_PAAM = False):
 
     aim_new.beam_l_ang = lambda i,t: aim_new.noise.alpha[i]['l'](t)
     aim_new.beam_r_ang = lambda i,t: aim_new.noise.alpha[i]['r'](t)
-
-    #aim_new.offset_tele = aim.offset_tele
-    #aim_new.get_coordinate_systems(option='self')
-    #aim_new.tele_option = aim.tele_option
-    #aim_new.PAAM_option = aim.PAAM_option
-    #aim_new.iteration = aim.iteration
     
-    return aim_new,beam_l_ang_res,beam_r_ang_res#,[Dx_all,Dy_all,OPD_all,alpha_all]
+    aim_new.get_coordinate_systems(iteration_val=False,option='self')
+
+    return aim_new
+
+def SC_jitter(wfe=False,aim=False): #Hier code van Lupi
+    if wfe==False:
+        wfe = aim.wfe
+
+
+
+
+
+
 
 
 

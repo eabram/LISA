@@ -91,19 +91,22 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
         for meanvar in ret.keys():
             for i in SC:
                 for s in side:
-                    if meanvar=='mean':
-                        ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]
-                        ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]
+                    try:
+                        if meanvar=='mean':
+                            ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]
+                            ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]
 
-                    elif meanvar=='var':
-                        ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]*0
-                        ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]*0
-                    x = ret[meanvar][str(i)][s]['t_adjust']
-                    y = ret[meanvar][str(i)][s]['tele_ang_adjust']
-                    xy=[]
-                    for j in range(0,len(x)):
-                        xy.append([x[j],y[j]])
-                    ret[meanvar][str(i)][s]['adjust']=xy
+                        elif meanvar=='var':
+                            ret[meanvar][str(i)][s]['t_adjust']=aim.t_adjust[str(i)][s]*0
+                            ret[meanvar][str(i)][s]['tele_ang_adjust']=aim.tele_ang_adjust[str(i)][s]*0
+                        x = ret[meanvar][str(i)][s]['t_adjust']
+                        y = ret[meanvar][str(i)][s]['tele_ang_adjust']
+                        xy=[]
+                        for j in range(0,len(x)):
+                            xy.append([x[j],y[j]])
+                        ret[meanvar][str(i)][s]['adjust']=xy
+                    except:
+                        pass
 
    
     ret_sort={}

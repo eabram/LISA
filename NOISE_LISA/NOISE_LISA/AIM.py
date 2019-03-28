@@ -65,6 +65,16 @@ class AIM():
             self.PAAM_method = wfe.PAAM_control_method
             self.tele_method = wfe.tele_control
             self.iteration=0
+    
+    def copy_aim(self,aim_old): #...copying all essential parameters
+        self.wfe = aim_old.wfe
+        self.tele_method = aim_old.tele_method
+        self.tele_option = aim_old.tele_option
+        self.PAAM_option = aim_old.PAAM_option
+        self.iteration = aim_old.iteration
+        self.PAAM_method = aim_old.PAAM_method
+        self.offset_tele = aim_old.offset_tele
+
 
     def get_noise(self,aim_old=False,dt=100):
         if aim_old==False:
@@ -752,28 +762,7 @@ class AIM():
             self.beam_r_ang = lambda i,t: self.add_jitter(ang_r,i,t,1e-8,1e20,dt=3600)
         else:
             self.beam_l_ang = ang_l
-            self.beam_r_ang = ang_r
-
-        #self.PAAM_l_ang = lambda i,t: self.beam_l_ang(i,t)*wfe.MAGNIFICATION
-        #self.PAAM_r_ang = lambda i,t: self.beam_r_ang(i,t)*wfe.MAGNIFICATION
-
-
-        ## Calculating new pointing vectors and coordinate system
-        #self.beam_l_coor = lambda i,t: pack.functions.beam_coor_out(self.wfe,i,t,self.tele_l_ang(i,t),self.beam_l_ang(i,t))
-        #self.beam_r_coor = lambda i,t: pack.functions.beam_coor_out(self.wfe,i,t,self.tele_r_ang(i,t),self.beam_r_ang(i,t))
-       
-        ## Calculating the Transmitted beam direction and position of the telescope aperture
-        #self.beam_l_direction = lambda i,t: self.beam_l_coor(i,t)[0]
-        #self.beam_r_direction = lambda i,t: self.beam_r_coor(i,t)[0]
-        #self.beam_l_start = lambda i,t: self.beam_l_direction(i,t)+np.array(self.wfe.data.LISA.putp(i,t))
-        #self.beam_r_start = lambda i,t: self.beam_r_direction(i,t)+np.array(self.wfe.data.LISA.putp(i,t))
-
-        ##self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.L_tele
-        ##self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*self.wfe.data.L_sl_func_tot(i,t)*c
-        ##self.beam_l_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_l_func_tot(i,t))
-        ##self.beam_r_vec = lambda i,t: self.beam_r_coor(i,t)[0]*self.wfe.data.L_sr_func_tot(i,t)*c
-        ##self.beam_r_vec = lambda i,t: self.beam_l_coor(i,t)[0]*np.linalg.norm(self.wfe.data.v_r_func_tot(i,t))
-        
+            self.beam_r_ang = ang_r       
  
         self.get_coordinate_systems(iteration_val=False,option='self')
         
