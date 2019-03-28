@@ -68,10 +68,13 @@ def get_date(option='date'):
     #date=date+'-'+dir_extr
     return ret
 
-def get_folder(direct=False):
+def get_folder(direct=False,opt_date=True):
     if direct==False:
-        date = get_date(option='date')
-        direct = os.getcwd()+'/Results/'+date+'/'
+        if opt_date==True:
+           date = get_date(option='date')+'/'
+        elif opt_data==False:
+            date==''
+        direct = os.getcwd()+'/Results/'+date
 
     if not os.path.exists(direct):
         os.makedirs(direct)
@@ -138,18 +141,21 @@ def nanmean(l):
 
 
 
-def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[]):
+def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[],opt_date=True,opt_time=True):
     date = get_date(option='date')
     time = get_date(option='time')
     
     if direct=='':
-        direct=get_folder()
+        direct=get_folder(opt_date=opt_date)
     direct=direct+extr+'/'
     if not os.path.exists(direct):
         os.makedirs(direct)
 
-
-    title=date+'_'+time+'_'+title+'.txt'
+    
+    if opt_time==True:
+        title=date+'_'+time+'_'+title+'.txt'
+    elif opt_time==False:
+        title=date+'_'+title+'.txt'
     writefile = open(direct+'/'+title,'w')
 
     #if len(inp)==1:
@@ -175,6 +181,10 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
             inp=[inp]
 
         for m in inp:
+            if str(type(m)) == "<type 'instance'>":
+                for k in m.__dict__.keys():
+                    writefile.write(str(k)+':: '+str(m.__dict__[k])+'\n')
+
             if type(m)==list:
                 if len(m)==3 and 'Figure' in str(type(m[0])):
                     f= m[0]
