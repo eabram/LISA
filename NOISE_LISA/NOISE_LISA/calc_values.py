@@ -151,8 +151,12 @@ def piston(wfe,SC=[1,2,3],side=['l','r'],dt=False,meas='piston',lim=[0,-1],aim='
         option = 'Option :: tele_'+aim.tele_option+'__PAAM_'+aim.PAAM_option
         iteration = 'Iteration:: '+ str(aim.iteration)
         measurement = 'Measurement:: '+m
+        
+        try:
+            ret_all[m] = title, iteration, option, measurement, ret_sort[m]
+        except KeyError:
+            ret_all[m] = title, iteration, option, measurement, [[np.nan,np.nan]]
 
-        ret_all[m] = title, iteration, option, measurement, ret_sort[m]
 
     if len_short==True:
         return ret_all[meas[0]]

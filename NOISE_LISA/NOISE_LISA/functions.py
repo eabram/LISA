@@ -152,7 +152,6 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
     if not os.path.exists(direct):
         os.makedirs(direct)
 
-    
     if opt_time==True:
         title=date+'_'+time+'_'+title+'.txt'
     elif opt_time==False:
