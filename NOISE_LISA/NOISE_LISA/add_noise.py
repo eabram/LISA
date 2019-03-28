@@ -208,7 +208,8 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
         
         #beam_ang = [beam_l_ang,beam_r_ang]
         #beam_ang = [False,False]
-
+        
+        aim_new.wfe = aim.wfe
         try:
             aim_new.noise
             del aim_new.noise
