@@ -141,7 +141,7 @@ def nanmean(l):
 
 
 
-def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[],opt_date=True,opt_time=True,time=''):
+def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[],opt_date=True,opt_time=True,time='',extra_title=''):
     date = get_date(option='date')
     if time=='':
         time = get_date(option='time')
@@ -153,9 +153,9 @@ def write(inp,title='',direct ='',extr='',list_inp=False,sampled=False,headers=[
         os.makedirs(direct)
 
     if opt_time==True:
-        title=date+'_'+time+'_'+title+'.txt'
+        title=extra_title+'_'+time+'_'+title+'.txt'
     elif opt_time==False:
-        title=date+'_'+title+'.txt'
+        title=extra_title+'_'+title+'.txt'
     writefile = open(direct+'/'+title,'w')
 
     #if len(inp)==1:
