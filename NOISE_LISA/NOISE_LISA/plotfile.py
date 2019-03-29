@@ -132,7 +132,6 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
                         for k4 in ret[k1][k2][k3][k31].keys():
                             for k5 in ret[k1][k2][k3][k31][k4]:
                                 xref = ret[k1][k2][k3][k31][k4][k5]['x']
-                                print(k5)
                                 raise BreakIt
     except BreakIt:
         pass
@@ -209,7 +208,7 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     lim=[3,-3]
     print(lim)
     for m in range(0,len(meas_plot)):
-        print(meas_plot[m])
+        #print(meas_plot[m])
         print(methods1,methods2)
         try:
             x1,y1 = pl1[meas_plot[m]]

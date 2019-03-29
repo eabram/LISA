@@ -241,6 +241,7 @@ def get_jittered_aim(aim,jit_on,dt_tele=False,dt_PAAM = False):
         aim_new.beam_r_ang = lambda i,t: aim_new.noise.alpha[i]['r'](t)
                 
         aim_new.get_coordinate_systems(iteration_val=False,option='self')
+        aim_new.jit_on=jit_on
         
     return aim_new
 

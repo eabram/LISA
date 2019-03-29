@@ -18,9 +18,6 @@ setup(name='NOISE_LISA',
       packages=['NOISE_LISA'],
       package_dir={'NOISE_LISA': 'NOISE_LISA'},
       package_data={'NOISE_LISA': ['parameters/Abram/*.txt','parameters/Waluschka/*.txt']},
-      zip_safe=False,
-      #include_package_data=True
-      #data_files=[('parameters',filename_list)],
-      #package_data = {'':['*.txt'],}
+      zip_safe=False
       )
 
