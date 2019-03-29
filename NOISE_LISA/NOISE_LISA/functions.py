@@ -259,7 +259,9 @@ def rdln(line,typ='text'):
         else:
             return ret
 
-def read(filename='',direct=''):
+def read(filename='',direct='',meas='all'):
+    if type(meas)==str:
+        meas = [meas]
     ret={}
     if direct=='':
         direct = get_folder()
@@ -317,46 +319,52 @@ def read(filename='',direct=''):
                         ret[key0][key1][iteration][option][key2]={}
                 elif 'Measurement' in line:
                     key2 = rdln(line.split(':: ')[-1])
-                    if key2 not in ret[key0][key1][iteration][option].keys():
-                        ret[key0][key1][iteration][option][key2]={}
- 
+                    if (key2.split(' ')[0] in meas) or (meas[0]=='all') and ('object' not in key2):
+                        go=True
+                        if key2 not in ret[key0][key1][iteration][option].keys():
+                            ret[key0][key1][iteration][option][key2]={}
+                    else:
+                        go=False
+                 
                 elif 'Label' in line:
-                    key3 = rdln(line.split(':: ')[-1])
-                    if key3 not in ret[key0][key1][iteration][option][key2].keys():
-                        ret[key0][key1][iteration][option][key2][key3]={}
-                        ret[key0][key1][iteration][option][key2][key3]['x']=np.array([])
-                        ret[key0][key1][iteration][option][key2][key3]['y']=np.array([])
+                    if go==True:
+                        key3 = rdln(line.split(':: ')[-1])
+                        if key3 not in ret[key0][key1][iteration][option][key2].keys():
+                            ret[key0][key1][iteration][option][key2][key3]={}
+                            ret[key0][key1][iteration][option][key2][key3]['x']=np.array([])
+                            ret[key0][key1][iteration][option][key2][key3]['y']=np.array([])
 
                 else:
-                    try:
-                        del x,y 
-                    except NameError:
-                        pass
-                    try:
-                        if ';' in line:
-                            [x,y] = line.split(';')
-                        else:
-                            x = line
-                            y='np.nan'
-                        ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],rdln(x,typ='float'))
+                    if go==True:
                         try:
-                            ret[key0][key1][iteration][option][key2][key3]['y'] =np.append(ret[key0][key1][iteration][option][key2][key3]['y'],rdln(y,typ='float'))
-                            value=True
-                        except ValueError:
-                            value=False
-                    except ValueError,e:
-                        print(e)
-                        print(line)
-                    if value==False:
-                        #except ValueError:
-                        ynew_list = rdln(y)[1:-1].split(' ')
-                        ynew_write=[]
-                        for ynew in ynew_list:
+                            del x,y 
+                        except NameError:
+                            pass
+                        try:
+                            if ';' in line:
+                                [x,y] = line.split(';')
+                            else:
+                                x = line
+                                y='np.nan'
+                            ret[key0][key1][iteration][option][key2][key3]['x'] = np.append(ret[key0][key1][iteration][option][key2][key3]['x'],rdln(x,typ='float'))
                             try:
-                                ynew_write.append(np.float64(ynew))
-                            except:
-                                pass
-                        ret[key0][key1][iteration][option][key2][key3]['y'] = np.append(ret[key0][key1][iteration][option][key2][key3]['y'],np.array(ynew_write))
+                                ret[key0][key1][iteration][option][key2][key3]['y'] =np.append(ret[key0][key1][iteration][option][key2][key3]['y'],rdln(y,typ='float'))
+                                value=True
+                            except ValueError:
+                                value=False
+                        except ValueError,e:
+                            print(e)
+                            print(line)
+                        if value==False:
+                            #except ValueError:
+                            ynew_list = rdln(y)[1:-1].split(' ')
+                            ynew_write=[]
+                            for ynew in ynew_list:
+                                try:
+                                    ynew_write.append(np.float64(ynew))
+                                except:
+                                    pass
+                            ret[key0][key1][iteration][option][key2][key3]['y'] = np.append(ret[key0][key1][iteration][option][key2][key3]['y'],np.array(ynew_write))
 
 
             
