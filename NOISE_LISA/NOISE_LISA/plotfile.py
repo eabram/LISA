@@ -170,7 +170,7 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
     if side=='l':
         ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rl_func_tot(SC,t)
     elif side=='r':
-        ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rir_func_tot(SC,t)
+        ref['piston mean'] = lambda t: wfe.c*wfe.data.L_rr_func_tot(SC,t)
     ref['power mean'] = lambda t: max_power(wfe,SC,t,side)
     #ref['FOV mean'] = lambda t: wfe.FOV
     if side=='l':
@@ -193,9 +193,9 @@ def compare_methods(wfe,SC,side,read_folder=False,ret=False,meas_plot='all',meth
 
     unit={}
     for m in meas:
-        if 'ang' in m or 'FOV' in m:
+        if 'ang' in m or 'FOV' in m or 'tilt' in m:
             unit[m] = ['Angle (microrad)',1e6]
-        elif 'piston' in m or 'r ' == m[0:2]  or 'z_extra' in m or 'zoff' in m or 'R mean'==m:
+        elif 'piston' in m or 'r ' == m[0:2]  or 'z_extra' in m or 'zoff' in m or 'R mean'==m or 'R var'==m or 'OPD' in m or 'xoff' in m or 'yoff' in m:
             unit[m] = ['Distance (km)',0.001]
         elif 'power' in m:
             unit[m]=['Power (W)',1]

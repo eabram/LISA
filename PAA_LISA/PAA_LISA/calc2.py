@@ -17,6 +17,7 @@ class PAA():
         self.num_back = kwargs.pop('num_back',0)
         self.plot_on = kwargs.pop('plot_on',True)
         self.scale = kwargs.pop('scale','Default')
+        self.relativistic = kwargs.pop('relativistic',True)
         if self.scale=='Default':
             print('Getting scale by filename:')
             a = self.filename
@@ -79,6 +80,8 @@ class PAA():
         v_r_func_tot=[]
         u_l_func_tot=[]
         u_r_func_tot=[]
+        u_l0_func_tot=[]
+        u_r0_func_tot=[]
         L_sl_func_tot=[]
         L_sr_func_tot=[]
         L_rl_func_tot=[]
@@ -88,12 +91,18 @@ class PAA():
         pos_func=[]
 
         for i in range(1,4):
-            [[v_l_func,v_r_func,u_l_func,u_r_func],[L_sl_func,L_sr_func,L_rl_func,L_rr_func]] = utils.send_func(self,i,calc_method = self.calc_method)
+            #--- Obtaining Velocity
+            utils.velocity_func(self,hstep=100)
+            utils.velocity_abs(self,hstep=100)
+
+            [[v_l_func,v_r_func,u_l_func,u_r_func],[L_sl_func,L_sr_func,L_rl_func,L_rr_func],[u_l0_func,u_r0_func]] = utils.send_func(self,i,calc_method = self.calc_method)
 
             v_l_func_tot.append(v_l_func)
             v_r_func_tot.append(v_r_func)
             u_l_func_tot.append(u_l_func)
             u_r_func_tot.append(u_r_func)
+            u_l0_func_tot.append(u_l0_func)
+            u_r0_func_tot.append(u_r0_func)
             
             L_sl_func_tot.append(L_sl_func)
             L_sr_func_tot.append(L_sr_func)
@@ -109,6 +118,8 @@ class PAA():
         self.v_r_func_tot = utils.func_over_sc(v_r_func_tot)
         self.u_l_func_tot = utils.func_over_sc(u_l_func_tot)
         self.u_r_func_tot = utils.func_over_sc(u_r_func_tot)
+        self.u_l0_func_tot = utils.func_over_sc(u_l0_func_tot)
+        self.u_r0_func_tot = utils.func_over_sc(u_r0_func_tot)
 
         self.L_sl_func_tot = utils.func_over_sc(L_sl_func_tot)
         self.L_sr_func_tot = utils.func_over_sc(L_sr_func_tot)
@@ -131,9 +142,9 @@ class PAA():
         self.u_r_out_func_tot = lambda i,t: LA.outplane(self.u_r_func_tot(i,t),self.n_func(i,t))
         
 
-        #--- Obtaining Velocity
-        utils.velocity_func(self,hstep=100)
-        utils.velocity_abs(self,hstep=100)
+        ##--- Obtaining Velocity
+        #utils.velocity_func(self,hstep=100)
+        #utils.velocity_abs(self,hstep=100)
 
         #--- Obtaining PAA --- 
         print('Abberation: '+str(self.abb))
@@ -143,6 +154,9 @@ class PAA():
         PAA_func_val[selections[1]] = lambda i,t: utils.calc_PAA_lout(self,i,t)
         PAA_func_val[selections[2]] = lambda i,t: utils.calc_PAA_rin(self,i,t)
         PAA_func_val[selections[3]] = lambda i,t: utils.calc_PAA_rout(self,i,t)
+        PAA_func_val['l_tot'] = lambda i,t: utils.calc_PAA_ltot(self,i,t)
+        PAA_func_val['r_tot'] = lambda i,t: utils.calc_PAA_rtot(self,i,t)
+
         self.PAA_func = PAA_func_val 
        
         self.ang_breathing_din = lambda i, time: LA.angle(self.v_l_func_tot(i,time),self.v_r_func_tot(i,time))

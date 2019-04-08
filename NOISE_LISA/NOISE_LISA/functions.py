@@ -81,7 +81,7 @@ def get_folder(direct=False,opt_date=True):
 
     return direct
 
-def savefig(f,title='',direct=True,newtime=False,extension='png'):
+def savefig(f,title='',direct=True,newtime=False,extension='.png'):
     
     if newtime==True:
         time = get_date(option='time')
@@ -645,12 +645,17 @@ def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret,output_full=False):
 LA = PAA_LISA.la()
 
 # Changes of coordinate system
-def coor_SC(wfe,i,t):
+def coor_SC(wfe,i,t,dType='wfe'):
+    if dType=='wfe':
+        data = wfe.data
+    elif dType=='data':
+        data = wfe
+
     # r,n,x (inplane) format
     t_calc=t
 
-    r = LA.unit(wfe.data.r_func(i,t_calc))
-    n = LA.unit(wfe.data.n_func(i,t_calc))
+    r = LA.unit(data.r_func(i,t_calc))
+    n = LA.unit(data.n_func(i,t_calc))
     x = np.cross(n,r)
     #offset = wfe.data.LISA.putp(i,t)
 

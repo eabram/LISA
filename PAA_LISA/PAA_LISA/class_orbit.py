@@ -7,6 +7,7 @@ import os
 from fractions import Fraction
 import math
 import datetime
+from decimal import *
 from scipy.interpolate import interp1d
 year2sec=32536000
 day2sec = year2sec/365.25
@@ -20,7 +21,7 @@ class orbit():
         if self.directory_imp != False:
             self.directory_imp=home+self.directory_imp
         directory_plot=kwargs.pop('directory_plot','/home/ester/git/synthlisa/figures')
-        self.scale=kwargs.pop('scale',1)
+        self.scale=kwargs.pop('scale',1.0)
         self.read_max=kwargs.pop('read_max','all')
         self.timeunit = kwargs.pop('timeunit','days')
         self.LISA_opt = kwargs.pop('LISA_opt',False)
@@ -85,9 +86,9 @@ class orbit():
                 read_check=True
                 try:
                     for j in a:
-                        b.append(np.float64(float(j)))
+                        b.append(np.float64(j))
                     a=b
-                    #scale=1000*2.5004844051425046)       
+                    #scale=1000*2.5004844051425046)      
                     p[0].append(np.array([a[1]*scale,a[2]*scale,a[3]*scale]))
                     p[1].append(np.array([a[4]*scale,a[5]*scale,a[6]*scale]))
                     p[2].append(np.array([a[7]*scale,a[8]*scale,a[9]*scale]))

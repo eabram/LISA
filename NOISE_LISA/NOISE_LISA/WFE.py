@@ -21,6 +21,8 @@ class WFE():
         adjust['dir_savefig']=kwargs.pop('home',home_run+'/Default_folder/')
         adjust['calc_method']=kwargs.pop('calc_method','Waluschka')
         adjust['LISA_opt']=kwargs.pop('LISA_opt','cache')
+        adjust['abberation'] = kwargs.pop('abberation',False)
+        adjust['relativistic'] = kwargs.pop('relativistic',True)
         self.LISA = adjust['LISA_opt']
         if self.data==False:
             self.get_PAA_LISA(para,adjust=adjust)
@@ -72,12 +74,13 @@ class WFE():
         'select':'Hallion', # Select which orbit files will be imported ('all' is all)
         'test_calc':False,
         'abberation':False,
-        'delay': True
+        'delay': True,
+        'relativistic':True
         }
 
         for k in adjust.keys():
             if k in options.keys():
-                print(adjust[k])
+                print(k+': '+str(adjust[k]))
                 options[k] = adjust[k]
 
         data_all = PAA_LISA.runfile.do_run(options,para)

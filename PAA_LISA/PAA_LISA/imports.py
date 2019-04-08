@@ -21,8 +21,16 @@ import save_fig
 import writefile
 import utils
 import scipy.fftpack
+from decimal import *
 
-year2sec=32536000
+import sys
+sys.path.insert(0,'/home/ester/git/LISA/NOISE_LISA')
+sys.path.insert(0,'/home/ester/git/LISA/PAA_LISA')
+import NOISE_LISA
+from synthlisa import *
+
+
+year2sec=32536000.0
 day2sec=year2sec/365.25
-c=300000000
+c=300000000.0
 
