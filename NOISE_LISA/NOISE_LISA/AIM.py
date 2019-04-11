@@ -1,7 +1,7 @@
 from imports import *
 import functions
 from parameters import *
-import PAA_LISA
+#import PAA_LISA
 import NOISE_LISA as pack
 
 # tele and PAA aim
