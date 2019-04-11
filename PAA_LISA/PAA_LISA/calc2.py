@@ -78,10 +78,10 @@ class PAA():
         LA=utils.la()
         v_l_func_tot=[]
         v_r_func_tot=[]
-        u_l_func_tot=[]
-        u_r_func_tot=[]
-        u_l0_func_tot=[]
-        u_r0_func_tot=[]
+        u_ltest_func_tot=[]
+        u_rtest_func_tot=[]
+        u_l0test_func_tot=[]
+        u_r0test_func_tot=[]
         L_sl_func_tot=[]
         L_sr_func_tot=[]
         L_rl_func_tot=[]
@@ -96,13 +96,14 @@ class PAA():
             utils.velocity_abs(self,hstep=100)
 
             [[v_l_func,v_r_func,u_l_func,u_r_func],[L_sl_func,L_sr_func,L_rl_func,L_rr_func],[u_l0_func,u_r0_func]] = utils.send_func(self,i,calc_method = self.calc_method)
+            #[[v_l_func,v_r_func],[L_sl_func,L_sr_func,L_rl_func,L_rr_func]] = utils.send_func(self,i,calc_method = self.calc_method)
 
             v_l_func_tot.append(v_l_func)
             v_r_func_tot.append(v_r_func)
-            u_l_func_tot.append(u_l_func)
-            u_r_func_tot.append(u_r_func)
-            u_l0_func_tot.append(u_l0_func)
-            u_r0_func_tot.append(u_r0_func)
+            u_ltest_func_tot.append(u_l_func)
+            u_rtest_func_tot.append(u_r_func)
+            u_l0test_func_tot.append(u_l0_func)
+            u_r0test_func_tot.append(u_r0_func)
             
             L_sl_func_tot.append(L_sl_func)
             L_sr_func_tot.append(L_sr_func)
@@ -116,10 +117,12 @@ class PAA():
 
         self.v_l_func_tot = utils.func_over_sc(v_l_func_tot)
         self.v_r_func_tot = utils.func_over_sc(v_r_func_tot)
-        self.u_l_func_tot = utils.func_over_sc(u_l_func_tot)
-        self.u_r_func_tot = utils.func_over_sc(u_r_func_tot)
-        self.u_l0_func_tot = utils.func_over_sc(u_l0_func_tot)
-        self.u_r0_func_tot = utils.func_over_sc(u_r0_func_tot)
+        self.u_l_func_tot = lambda i,t: utils.get_receiving(self,i,t,'l')
+        self.u_r_func_tot = lambda i,t: utils.get_receiving(self,i,t,'r')
+        self.u_ltest_func_tot = utils.func_over_sc(u_ltest_func_tot)
+        self.u_rtest_func_tot = utils.func_over_sc(u_rtest_func_tot)
+        self.u_l0test_func_tot = utils.func_over_sc(u_l0test_func_tot)
+        self.u_r0test_func_tot = utils.func_over_sc(u_r0test_func_tot)
 
         self.L_sl_func_tot = utils.func_over_sc(L_sl_func_tot)
         self.L_sr_func_tot = utils.func_over_sc(L_sr_func_tot)

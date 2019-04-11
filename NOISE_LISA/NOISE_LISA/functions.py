@@ -429,7 +429,10 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
-            tele_ang = aim.tele_l_ang(i_self,t+tdel0)
+            if angles==False:
+                tele_ang = aim.tele_l_ang(i_self,t+tdel0)
+            else:
+                tele_ang=angles
             coor_start = beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang,aim.offset_tele['l'])
             coor_end = aim.tele_r_coor(i_left,t+tdel)
             start=aim.tele_l_start(i_self,t+tdel0)
@@ -441,7 +444,10 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
                 tdel0=tdel
             elif wfe.data.calc_method=='Abram':
                 tdel0=0
-            tele_ang = aim.tele_r_ang(i_self,t+tdel0)
+            if angles==False:
+                tele_ang = aim.tele_r_ang(i_self,t+tdel0)
+            else:
+                tele_ang=angles
             coor_start =  beam_coor_out(wfe,i_self,t,tele_ang,PAAM_ang,aim.offset_tele['r'])
             coor_end = aim.tele_l_coor(i_right,t+tdel)
             start = aim.tele_r_start(i_self,t+tdel0)
@@ -535,6 +541,9 @@ def get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang,ret,mode='opposite',precisi
         return xoff
     elif ret=='yoff':
         return yoff
+    elif ret=='r':
+        return (xoff**2 +yoff**2)**0.5
+
     elif ret=='all':
         ret_val={}
         ret_val['start']=start
@@ -624,6 +633,37 @@ def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret,output_full=False):
 
 
 
+def spotsize_limit(wfe,aim,i,t,side,limit=0,PAAM_ang=False,rtol=False):
+    if side=='l':
+        guess = aim.tele_l_ang(i,t)
+        if PAAM_ang==False:
+            PAAM_ang_calc = aim.beam_l_ang(i,t)
+        else:
+            PAAM_ang_calc = PAAM_ang
+    elif side=='r':
+        guess = aim.tele_r_ang(i,t)
+        if PAAM_ang==False:
+            PAAM_ang_calc = aim.beam_r_ang(i,t)
+        else:
+            PAAM_ang_calc = PAAM_ang
+                
+    f = lambda ang_tele: NOISE_LISA.functions.get_wavefront_parallel(wfe,aim,i,t,side,PAAM_ang_calc,'xoff',mode='opposite',angles=ang_tele) - limit
+    #f_solve = lambda x: f(x)-limit
+    offset=0.1
+    #print(limit)
+    #print(f_solve(guess-offset),f_solve(guess+offset))
+    
+    if rtol==False:
+        ang_solve = scipy.optimize.brentq(f,guess-offset,guess+offset)
+    else:
+        ang_solve = scipy.optimize.brentq(f,guess-offset,guess+offset,rtol=rtol)
+    
+    return ang_solve
+
+#def set_offset_waist(wfe,aim,SC,t,side):
+
+
+
 
 #def get_tele_fc(wfe,aim,i,t,side,count_max=np.inf,lim=1e-10,scale=1):
 #    if side=='l':
@@ -645,10 +685,11 @@ def rotate_PAA_wavefront(wfe,aim,SC,t,side,ret,output_full=False):
 LA = PAA_LISA.la()
 
 # Changes of coordinate system
-def coor_SC(wfe,i,t,dType='wfe'):
-    if dType=='wfe':
+def coor_SC(wfe,i,t):
+    str(wfe)
+    if 'WFE' in str(wfe):
         data = wfe.data
-    elif dType=='data':
+    elif 'PAA' in str(wfe):
         data = wfe
 
     # r,n,x (inplane) format

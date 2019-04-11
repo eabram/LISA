@@ -395,7 +395,16 @@ class AIM():
             self.tele_l_ang = self.tele_ang_l_fc
             self.tele_r_ang = self.tele_ang_r_fc
 
-        
+        elif 'min' in method:
+            if 'spot'==method.split('_')[-1]:
+                self.tele_l_ang = lambda i,t: pack.functions.spotsize_limit(self.wfe,self.aim0,i,t,'l',limit=-self.wfe.spotsize)
+                self.tele_r_ang = lambda i,t: pack.functions.spotsize_limit(self.wfe,self.aim0,i,t,'r',limit=-self.wfe.spotsize)
+        elif 'max' in method:
+            if 'spot'==method.split('_')[-1]:
+                self.tele_l_ang = lambda i,t: pack.functions.spotsize_limit(self.wfe,self.aim0,i,t,'l',limit=self.wfe.spotsize)
+                self.tele_r_ang = lambda i,t: pack.functions.spotsize_limit(self.wfe,self.aim0,i,t,'r',limit=self.wfe.spotsize)
+
+
         elif 'SS' in method:
             ### Obtai full control
             [self.tele_ang_l_fc,self.tele_ang_r_fc] = self.tele_control_ang_fc(option=option)

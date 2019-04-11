@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 year2sec=np.float64(32536000.0)
-day2sec=np.float(year2sec/365.25)
+day2sec=np.float64(year2sec/365.25)
 c=np.float64(300000000.0)
 
 #Parameters:

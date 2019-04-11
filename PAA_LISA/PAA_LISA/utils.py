@@ -418,16 +418,19 @@ def send_func(OBJ,i,calc_method='Waluschka',print_on=False):
         #print('Selected method is: '+method)
         #print('')
         #Abram2018
-        v_send_l = lambda t: pos_left(t+L_sl(t)) - pos_OBJ(t)
-        v_send_r = lambda t: pos_right(t+L_sr(t)) - pos_OBJ(t)
+        v_send_l_calc = lambda t: pos_left(t+L_sl(t)) - pos_OBJ(t)
+        v_send_l = lambda t: (L_sl(t)*c*v_send_l_calc(t))/(np.linalg.norm(v_send_l_calc(t)))
+        v_send_r_calc = lambda t: pos_right(t+L_sr(t)) - pos_OBJ(t)
+        v_send_r = lambda t: (L_sr(t)*c*v_send_r_calc(t))/(np.linalg.norm(v_send_r_calc(t)))
+
         v_rec_l0 = lambda t: pos_OBJ(t) - pos_left(t - L_rl(t))
         v_rec_r0 = lambda t: pos_OBJ(t) - pos_right(t - L_rr(t))
         if OBJ.abb==False:
             v_rec_l = v_rec_l0
             v_rec_r = v_rec_r0
-        #elif OBJ.abb==True:
-        #    v_rec_l = lambda t: relativistic_aberrations(OBJ,i,t,L_rl(t),'l',relativistic=OBJ.relativistic)
-        #    v_rec_r = lambda t: relativistic_aberrations(OBJ,i,t,L_rr(t),'r',relativistic=OBJ.relativistic) 
+        elif OBJ.abb==True:
+            v_rec_l = lambda t: relativistic_aberrations(OBJ,i,t,L_rl(t),'l',relativistic=OBJ.relativistic)
+            v_rec_r = lambda t: relativistic_aberrations(OBJ,i,t,L_rr(t),'r',relativistic=OBJ.relativistic) 
     elif calc_method=='Waluschka':
         #Waluschka2003
         v_send_l = lambda t: pos_left(t+L_sl(t)) - pos_OBJ(t+L_sl(t))
@@ -437,12 +440,13 @@ def send_func(OBJ,i,calc_method='Waluschka',print_on=False):
         if OBJ.abb==False:
             v_rec_l = v_rec_l0
             v_rec_r = v_rec_r0
-        #elif OBJ.abb==True:
-        #    v_rec_l = lambda t: np.linalg.norm(v_rec_l0(t))*(LA.unit(LA.unit(v_rec_l0(t-L_rl(t)))*OBJ.c+(OBJ.v_abs(i_OBJ,t-L_rl(t)) - OBJ.v_abs(i_left,t-L_rl(t)))))
-        #    v_rec_r = lambda t: np.linalg.norm(v_rec_r0(t))*(LA.unit(LA.unit(v_rec_r0(t-L_rr(t)))*OBJ.c+(OBJ.v_abs(i_OBJ,t-L_rr(t)) - OBJ.v_abs(i_right,t-L_rr(t)))))
-    if OBJ.abb==True:
+        elif OBJ.abb==True:
+            v_rec_l = lambda t: np.linalg.norm(v_rec_l0(t))*(LA.unit(LA.unit(v_rec_l0(t-L_rl(t)))*OBJ.c+(OBJ.v_abs(i_OBJ,t-L_rl(t)) - OBJ.v_abs(i_left,t-L_rl(t)))))
+            v_rec_r = lambda t: np.linalg.norm(v_rec_r0(t))*(LA.unit(LA.unit(v_rec_r0(t-L_rr(t)))*OBJ.c+(OBJ.v_abs(i_OBJ,t-L_rr(t)) - OBJ.v_abs(i_right,t-L_rr(t)))))
+    #if OBJ.abb==True:
         v_rec_l = lambda t: relativistic_aberrations(OBJ,i,t,L_rl(t),'l',relativistic=OBJ.relativistic)
         v_rec_r = lambda t: relativistic_aberrations(OBJ,i,t,L_rr(t),'r',relativistic=OBJ.relativistic)          
+    #return [[v_send_l,v_send_r],[L_sl,L_sr,L_rl,L_rr]]
     return [[v_send_l,v_send_r,v_rec_l,v_rec_r],[L_sl,L_sr,L_rl,L_rr],[v_rec_l0,v_rec_r0]]
 
 
@@ -468,7 +472,7 @@ def relativistic_aberrations(OBJ,i,t,tdel,side,relativistic=True):
     
     elif relativistic==True:
         LA=la()
-        coor = NOISE_LISA.functions.coor_SC(OBJ,i,t,dType='data')
+        coor = NOISE_LISA.functions.coor_SC(OBJ,i,t)
         if side=='l':
             velo = (OBJ.v_abs(i_self,t-tdel0) - OBJ.v_abs(i_left,t-tdel))
         elif side=='r':
@@ -491,10 +495,84 @@ def relativistic_aberrations(OBJ,i,t,tdel,side,relativistic=True):
         ur_prime = (num*c_velo[0])/den
         un_prime = (num*c_velo[1])/den
         c_prime = ux_prime*x_prime + un_prime*n_prime +ur_prime*r_prime
-        u_new=c_prime
+        u_new=LA.unit(c_prime)*np.linalg.norm(u_not_ab)
+   
+    elif relativistic=='test':
+         
+        if side=='l':
+            c_send = LA.unit(OBJ.u_l0_func_tot(i_self,t))*np.float64(c)
+            velo_send_0 = OBJ.v_abs(i_left,t-tdel)
+        elif side=='r':
+            c_send = LA.unit(OBJ.u_r0_func_tot(i_self,t))*np.float64(c)
+            velo_send_0 = OBJ.v_abs(i_right,t-tdel)
+        velo_0_send = -velo_send_0
+
+        c_0 = LA.unit(add_velo(velo_0_send,c_send))*np.float64(c)
+        velo_rec_0 = OBJ.v_abs(i_self,t-tdel0)
+        c_rec = LA.unit(add_velo(velo_rec_0,c_0))*np.float64(c)
+
+        u_new=LA.unit(c_rec)*np.linalg.norm(u_not_ab)
     
-        return u_new
+    return u_new
+
+def add_velo(v,u):
+    c=np.float64(300000000.0)
+    v_mag = np.linalg.norm(v)
+    gamma = 1.0/((1-((v/c)**2))**0.5)
+    u_prime = (1.0/(1.0-(np.dot(u,v)/(c**2))))*((u/gamma) - v+(1.0/(c**2))*(gamma/(1+gamma))*(np.dot(u,v))*v)
+
+    return u_prime
+
+def get_receiving(OBJ,i,t,side):
+    LA = la()
+    [i_self,i_left,i_right] = i_slr(i)
     
+    if side=='l':
+        tdel = OBJ.L_rl_func_tot(i_self,t)
+        v_send = OBJ.v_abs(i_left,t-tdel)
+    elif side=='r':
+        tdel = OBJ.L_rr_func_tot(i_self,t)
+        v_send = OBJ.v_abs(i_right,t-tdel)
+    
+    if OBJ.calc_method=='Abram':
+        tdel0=0
+    elif OBJ.calc_method=='Waluschka':
+        tdel0=tdel
+    
+    if OBJ.abb==True:
+        v_rec = OBJ.v_abs(i_self,t)
+        if OBJ.relativistic==True:
+            ux = v_rec
+            v = v_send
+            v_rec_sendframe = add_velo(v,ux)
+            if side=='l':
+                c_vec_sendframe = LA.unit(OBJ.v_r_func_tot(i_left,t-tdel))*np.float64(c)
+            elif side=='r':
+                c_vec_sendframe = LA.unit(OBJ.v_l_func_tot(i_right,t-tdel))*np.float64(c)
+
+            c_vec_recframe = add_velo(v_rec_sendframe,c_vec_sendframe)
+            return (tdel*np.float64(c)*c_vec_recframe)/(np.linalg.norm(c_vec_recframe))
+        elif OBJ.relativistic==False:
+            if side=='l':
+                c_vec =  np.array(OBJ.LISA.putp(i_self,t-tdel0)) - np.array(OBJ.LISA.putp(i_left,t-tdel))
+            elif side=='r':
+                c_vec = np.array(OBJ.LISA.putp(i_self,t-tdel0)) - np.array(OBJ.LISA.putp(i_right,t-tdel))
+            c_vec = (np.float64(c)*c_vec)/(np.linalg.norm(c_vec))
+            ret = c_vec + (v_rec-v_send)
+            return (tdel*np.float64(c)*ret)/np.linalg.norm(ret)
+
+
+    elif OBJ.abb==False:
+        if side=='l':
+            return np.array(OBJ.LISA.putp(i_self,t-tdel0)) - np.array(OBJ.LISA.putp(i_left,t-tdel))
+        elif side=='r':
+            return np.array(OBJ.LISA.putp(i_self,t-tdel0)) - np.array(OBJ.LISA.putp(i_right,t-tdel))
+
+    #angle = LA.angle(-c_vec_recframe,wfe.data.v_l_func_tot(i,t))
+
+    #return angle
+
+
 def calc_PAA_ltot(OBJ,i,t):
     LA = la()
     #if OBJ.abb:
@@ -544,6 +622,45 @@ def calc_PAA_rout(OBJ,i,t):
     calc_ang=LA.ang_in_out(OBJ.v_r_func_tot(i,t),-OBJ.u_r_func_tot(i,t),OBJ.n_func(i,t),OBJ.r_func(i,t),give='out')
     
     return calc_ang
+
+#def calc_PAA(OBJ,i,t,side,ab=True):
+#    LA = la()
+#    coor = NOISE_LISA.functions.coor_SC(OBJ,i,t)
+#    if side=='l':
+#        if ab==True:
+#            beam_in = -(LA.matmul(coor,OBJ.u_l_func_tot(i,t)))
+#        elif ab==False:
+#            beam_in = -(LA.matmul(coor,OBJ.u_l0_func_tot(i,t)))
+#        beam_out = (LA.matmul(coor,OBJ.v_l_func_tot(i,t)))
+#    elif side=='r':
+#        if ab==True:
+#            beam_in = -(LA.matmul(coor,OBJ.u_r_func_tot(i,t)))
+#        elif ab==False:
+#            beam_in = -(LA.matmul(coor,OBJ.u_r0_func_tot(i,t)))
+#        beam_out = (LA.matmul(coor,OBJ.v_r_func_tot(i,t)))
+#
+#    beam_in_in = (np.array([beam_in[2],beam_in[0]]))
+#    beam_in_out = (np.array([beam_in[1],beam_in[0]]))
+#    beam_out_in = (np.array([beam_out[2],beam_out[0]]))
+#    beam_out_out = (np.array([beam_out[1],beam_out[0]]))
+#    #
+#    #PAA_in_calc = beam_out_in - beam_in_in
+#    #PAA_in = (np.arctan(PAA_in_calc[1]/PAA_in_calc[0]))
+#    #
+#    #
+#    #PAA_out_calc = beam_out_out - beam_in_out
+#    #PAA_out = abs(np.arctan(PAA_out_calc[1]/PAA_out_calc[0]))
+#
+#
+#    #PAA_in = np.arccos(np.dot(beam_out_in,beam_in_in)/(np.linalg.norm(beam_out_in)*np.linalg.norm(beam_in_in)))
+#    #PAA_out = np.arccos(np.dot(beam_out_out,beam_in_out)/(np.linalg.norm(beam_out_out)*np.linalg.norm(beam_in_out)))
+#    
+#    PAA_in = LA.angle(beam_out_in,beam_in_in)
+#    PAA_out = LA.angle(beam_out_out,beam_in_out)
+#    PAA_tot = LA.angle(beam_out,beam_in)
+#
+#    return [PAA_in,PAA_out,PAA_tot]
+
 
 
 
