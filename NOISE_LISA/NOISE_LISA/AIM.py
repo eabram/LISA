@@ -7,7 +7,7 @@ import NOISE_LISA as pack
 # tele and PAA aim
 class AIM():
     global LA
-    LA = PAA_LISA.la()
+    LA = PAA_LISA.utils.la()
 
     def __init__(self,wfe,**kwargs):
         self.wfe = wfe
