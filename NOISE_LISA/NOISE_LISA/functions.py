@@ -682,7 +682,7 @@ def spotsize_limit(wfe,aim,i,t,side,limit=0,PAAM_ang=False,rtol=False):
 
 
 
-LA = PAA_LISA.utils.la()
+#LA = PAA_LISA.utils.la()
 
 # Changes of coordinate system
 def coor_SC(wfe,i,t):
