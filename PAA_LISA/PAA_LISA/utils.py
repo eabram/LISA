@@ -10,7 +10,7 @@ from scipy.interpolate import RegularGridInterpolator
 import scipy.optimize
 from sympy import *
 from imports import *
-import NOISE_LISA
+#import NOISE_LISA
 
 year2sec=32536000
 day2sec=year2sec/365.25
